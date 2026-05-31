@@ -6,9 +6,7 @@ Personaje::Personaje(const QString &nombre, int vida, float velocidad,
       nombre_(nombre),
       vida_(vida),
       velocidad_(velocidad),
-      activo_(true),
-      modificadorVelocidad_(1.0f),
-      habilidadActiva_(false)
+      activo_(true)
 {}
 
 Personaje::~Personaje() {}

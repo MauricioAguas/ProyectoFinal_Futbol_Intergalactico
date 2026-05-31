@@ -4,8 +4,12 @@
 #include "Entidad.h"
 #include <QString>
 
-// heredan de Personaje, compartiendo atributos de vida, velocidad y estado, cumpliendo correctamente el principio de herencia en POO.
-
+/*
+ Clase abstracta intermedia.
+ Jugador y JugadorIA heredan de Personaje, compartiendo
+ atributos de vida, velocidad y estado. Las caracteristicas
+ de personalidad especificas se implementan en cada subclase.
+*/
 class Personaje : public Entidad {
     Q_OBJECT
 
@@ -25,11 +29,13 @@ public:
     void setVelocidad(float v) { velocidad_ = v; }
     void setActivo(bool a)     { activo_ = a; }
 
-    // Acciones comunes (polimorfismo)
+    // Polimorfismo — cada subclase define como se mueve
     virtual void mover(float dx, float dy) = 0;
-    virtual void recibirImpacto()          = 0;
 
-    // Heredados de Entidad (cada subclase los implementa)
+    // Llamado por el Nivel cuando el balon toca al personaje
+    virtual void contacto(class Balon *balon) = 0;
+
+    // Heredados de Entidad
     void actualizar() override = 0;
     void reiniciar()  override = 0;
 
@@ -38,11 +44,6 @@ protected:
     int     vida_;
     float   velocidad_;
     bool    activo_;
-
-    // Caracteristicas de personalidad del personaje
-    // Se sobreescriben en cada subclase para modular el comportamiento
-    float modificadorVelocidad_;   // ej: turbo-cafeina (Fry) o modo-panico (Bender)
-    bool  habilidadActiva_;
 };
 
 #endif // PERSONAJE_H
