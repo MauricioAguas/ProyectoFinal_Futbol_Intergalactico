@@ -6,82 +6,82 @@
 #include <QObject>
 #include <QKeyEvent>
 #include <QTimer>
+#include <QColor>
 
 /*
  Jugador controlado por teclado.
- Representa al cabezon en pantalla (Fry o Bender segun lado).
+ Se dibuja como un circulo de cabeza grande (cabezon) con
+ un cuerpo pequeño debajo, usando formas Qt puras.
+ Cuando se tengan los sprites se reemplaza solo el paint().
 
- Caracteristicas de personalidad (Momento 1):
-  - Turbo-cafeina : al activarse duplica velocidad por 5 segundos.
-  - Panico espacial: al recibir contacto con el balon a alta velocidad
-    el movimiento se vuelve erratico por 3 segundos.
-
- Mecanica de cabezon:
-  - Puede moverse horizontalmente.
-  - Puede saltar (fisica parabolica: vy inicial negativa + gravedad).
-  - Al tocar el balon con la cabeza/cuerpo aplica un impulso
-    proporcional a su velocidad y direccion actual.
+ Caracteristicas de personalidad:
+  - Turbo-cafeina : duplica velocidad 5 segundos.
+  - Panico espacial: movimiento erratico 3 segundos al recibir
+    un balon a alta velocidad.
 */
 class Jugador : public Personaje {
     Q_OBJECT
 
 public:
-    // teclaIzq/teclaDer/teclaSalto: codigos Qt::Key asignados a este jugador
     explicit Jugador(const QString &nombre,
                      float velocidad,
                      Qt::Key teclaIzq,
                      Qt::Key teclaDer,
                      Qt::Key teclaSalto,
+                     const QColor &color = Qt::cyan,
                      QGraphicsItem *parent = nullptr);
     ~Jugador();
 
     // --- Personaje interface ---
     void mover(float dx, float dy) override;
-    void contacto(Balon *balon)    override;  // aplica impulso al balon
-    void actualizar()              override;  // fisica de salto + movimiento
+    void contacto(Balon *balon)    override;
+    void actualizar()              override;
     void reiniciar()               override;
 
-    // --- Control de teclado (llamado por el Nivel) ---
+    // --- QGraphicsItem interface ---
+    QRectF boundingRect() const override;
+    void   paint(QPainter *painter,
+                 const QStyleOptionGraphicsItem *option,
+                 QWidget *widget = nullptr) override;
+
+    // --- Control de teclado ---
     void keyPress(Qt::Key key);
     void keyRelease(Qt::Key key);
 
-    // --- Salto ---
     bool estaEnElSuelo() const { return enSuelo_; }
-
-    // --- Habilidades de personalidad ---
-    void activarTurboCafeina();    // duplica velocidad 5 s
+    void activarTurboCafeina();
 
 private slots:
-    void desactivarTurbo();        // slot del QTimer turbo
-    void desactivarPanico();       // slot del QTimer panico
+    void desactivarTurbo();
+    void desactivarPanico();
 
 private:
-    // Teclas asignadas
     Qt::Key teclaIzq_;
     Qt::Key teclaDer_;
     Qt::Key teclaSalto_;
-
-    // Estado de teclas presionadas
     bool presIzq_;
     bool presDer_;
     bool presSalto_;
 
-    // Fisica de salto
-    float vy_;          // velocidad vertical actual
-    bool  enSuelo_;     // true si esta pisando el suelo
-    float suelo_;       // coordenada Y del suelo para este jugador
+    float vy_;
+    bool  enSuelo_;
+    float suelo_;
+    static constexpr float GRAVEDAD      = 0.5f;
+    static constexpr float IMPULSO_SALTO = -12.0f;
 
-    static constexpr float GRAVEDAD      = 0.5f;   // px/tick^2
-    static constexpr float IMPULSO_SALTO = -12.0f; // vy inicial al saltar
-
-    // Personalidad: turbo-cafeina
-    float  velocidadBase_;          // velocidad sin modificador
-    float  modificadorVelocidad_;   // 1.0 normal / 2.0 turbo
+    float  velocidadBase_;
+    float  modificadorVelocidad_;
     QTimer *timerTurbo_;
 
-    // Personalidad: panico espacial
     bool   enPanico_;
     QTimer *timerPanico_;
+
+    QColor color_;     // color del cabezon (diferencia jugador 1 y 2)
+
+    // Dimensiones del cabezon (formas Qt)
+    static constexpr float RADIO_CABEZA = 24.0f;
+    static constexpr float ANCHO_CUERPO = 18.0f;
+    static constexpr float ALTO_CUERPO  = 20.0f;
 };
 
 #endif // JUGADOR_H

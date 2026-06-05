@@ -1,7 +1,7 @@
 #include "hds/Entidad.h"
 
 Entidad::Entidad(QGraphicsItem *parent)
-    : QObject(), QGraphicsPixmapItem(parent),
+    : QObject(nullptr), QGraphicsItem(parent),
       x_(0.0f), y_(0.0f)
 {}
 

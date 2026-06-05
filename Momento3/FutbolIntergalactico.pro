@@ -29,3 +29,5 @@ HEADERS += \
     hds/Nivel1.h \
     hds/Nivel2.h \
     hds/Game.h
+
+RESOURCES += assets.qrc

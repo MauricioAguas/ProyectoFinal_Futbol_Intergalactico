@@ -1,15 +1,17 @@
 #ifndef ENTIDAD_H
 #define ENTIDAD_H
 
-#include <QGraphicsPixmapItem>
+#include <QGraphicsItem>
 #include <QObject>
+#include <QRectF>
+#include <QPainter>
 
-
-/* Clase base abstracta para todas las entidades del juego.
- (jugador) y (antagonista IA) heredan de Personaje,
- que a su vez hereda de Entidad. Asi ambos comparten la misma raiz.
+/*
+ Clase base abstracta para todas las entidades del juego.
+ Hereda de QGraphicsItem (no Pixmap) para poder dibujarse
+ con formas Qt puras. Cada subclase implementa paint().
 */
-class Entidad : public QObject, public QGraphicsPixmapItem {
+class Entidad : public QObject, public QGraphicsItem {
     Q_OBJECT
 
 public:
@@ -22,8 +24,14 @@ public:
     void  setPosicion(float x, float y);
 
     // Ciclo de vida
-    virtual void actualizar()  = 0;   // logica de movimiento/estado
-    virtual void reiniciar()   = 0;   // volver al estado inicial
+    virtual void actualizar() = 0;
+    virtual void reiniciar()  = 0;
+
+    // QGraphicsItem interface — cada subclase define su forma y dibujo
+    QRectF boundingRect() const override = 0;
+    void   paint(QPainter *painter,
+                 const QStyleOptionGraphicsItem *option,
+                 QWidget *widget = nullptr) override = 0;
 
 protected:
     float x_;

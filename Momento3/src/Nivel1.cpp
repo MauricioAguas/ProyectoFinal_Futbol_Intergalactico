@@ -5,6 +5,8 @@
 #include "hds/Arco.h"
 #include <QKeyEvent>
 #include <QGraphicsRectItem>
+#include <QGraphicsPixmapItem>
+#include <QPixmap>
 
 Nivel1::Nivel1(ModoJuego modo, QObject *parent)
     : Nivel(modo, parent)
@@ -17,8 +19,13 @@ void Nivel1::inicializar() {
     altoEscena_  = 500;
     setSceneRect(0, 0, anchoEscena_, altoEscena_);
 
-    // Fondo
-    setBackgroundBrush(QBrush(QColor(10, 10, 40)));
+    // Fondo: intentar cargar imagen, si no existe usar color solido
+    QPixmap fondoPx(":/assets/fondo_nivel1.png");
+    if (!fondoPx.isNull()) {
+        setBackgroundBrush(QBrush(fondoPx.scaled(anchoEscena_, altoEscena_)));
+    } else {
+        setBackgroundBrush(QBrush(QColor(10, 10, 40)));  // azul espacial
+    }
 
     // Suelo visual
     QGraphicsRectItem *suelo = addRect(0, 440, 800, 20,
@@ -26,16 +33,18 @@ void Nivel1::inicializar() {
                                        QBrush(QColor(40, 120, 40)));
     Q_UNUSED(suelo);
 
-    // Jugador 1 (humano) — teclas A/D/W
+    // Jugador 1 — cabezon cyan (Fry)
     jugador1_ = new Jugador("Fry", 4.0f,
-                            Qt::Key_A, Qt::Key_D, Qt::Key_W);
+                            Qt::Key_A, Qt::Key_D, Qt::Key_W,
+                            QColor(100, 200, 255));
     jugador1_->setPosicion(150, 380);
     addItem(jugador1_);
 
-    // Jugador 2 — humano o IA
+    // Jugador 2 — cabezon gris metalico (Bender) o IA
     if (modo_ == VS_HUMANO) {
         Jugador *j2 = new Jugador("Bender", 4.0f,
-                                  Qt::Key_Left, Qt::Key_Right, Qt::Key_Up);
+                                  Qt::Key_Left, Qt::Key_Right, Qt::Key_Up,
+                                  QColor(180, 180, 180));
         j2->setPosicion(600, 380);
         jugador2_ = j2;
     } else {
@@ -45,11 +54,11 @@ void Nivel1::inicializar() {
     }
     addItem(jugador2_);
 
-    // Balon — modo parabolico (nivel 1)
+    // Balon
     balon_ = new Balon();
     balon_->setBounds(anchoEscena_, altoEscena_);
     balon_->setPosicion(390, 360);
-    balon_->lanzar(3.0f, -8.0f);  // saque inicial
+    balon_->lanzar(3.0f, -8.0f);
     addItem(balon_);
 
     // Arcos
@@ -61,9 +70,8 @@ void Nivel1::inicializar() {
     arcoDer_->setPosicion(760, 340);
     addItem(arcoDer_);
 
-    // Arrancar timers
     activo_ = true;
-    timerFrame_->start(16);    // ~60 fps
+    timerFrame_->start(16);
     timerSegundo_->start(1000);
 }
 
