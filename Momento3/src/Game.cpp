@@ -2,17 +2,17 @@
 #include "hds/Nivel1.h"
 #include "hds/Nivel2.h"
 #include <QGraphicsView>
+#include <QGraphicsTextItem>
 #include <QVBoxLayout>
-#include <QHBoxLayout>
 #include <QWidget>
 #include <QPushButton>
-#include <QLabel>
 #include <QFont>
+#include <QTimer>
 
 Game::Game(QWidget *parent)
     : QMainWindow(parent), nivel_(nullptr)
 {
-    setWindowTitle("Futbol Intergalactico — Futurama 3000");
+    setWindowTitle("Futbol Intergalactico - Futurama 3000");
     setFixedSize(820, 560);
 
     view_ = new QGraphicsView(this);
@@ -29,9 +29,6 @@ Game::~Game() {
     limpiarNivel();
 }
 
-// ---------------------------------------------------------------------------
-// Menu de inicio
-// ---------------------------------------------------------------------------
 void Game::mostrarMenu() {
     limpiarNivel();
 
@@ -40,23 +37,24 @@ void Game::mostrarMenu() {
     menu->setBackgroundBrush(QBrush(QColor(10, 10, 40)));
     view_->setScene(menu);
 
-    // Titulo
+    // Titulo — QGraphicsTextItem ahora esta completo con el include
     QGraphicsTextItem *titulo = menu->addText(
         "FUTBOL INTERGALACTICO", QFont("Arial", 28, QFont::Bold));
     titulo->setDefaultTextColor(QColor(255, 200, 0));
     titulo->setPos(120, 80);
 
     QGraphicsTextItem *sub = menu->addText(
-        "Futurama — Año 3000", QFont("Arial", 14));
+        "Futurama - Anno 3000", QFont("Arial", 14));
     sub->setDefaultTextColor(QColor(180, 180, 255));
     sub->setPos(290, 140);
 
-    // Widget con botones superpuesto en la vista
+    // Botones superpuestos en la vista
     QWidget *overlay = new QWidget(view_);
     overlay->setStyleSheet("background: transparent;");
     overlay->setGeometry(0, 0, 820, 560);
 
-    auto btnStyle = QString("QPushButton {"
+    auto btnStyle = QString(
+        "QPushButton {"
         "background:#1a1a5a; color:white; border:2px solid #4444ff;"
         "border-radius:8px; font-size:16px; padding:10px 30px;}"
         "QPushButton:hover{background:#3333aa;}");
@@ -65,10 +63,10 @@ void Game::mostrarMenu() {
     vlay->setAlignment(Qt::AlignCenter);
     vlay->addSpacing(200);
 
-    QPushButton *btn1v1  = new QPushButton("Nivel 1 — 1 vs 1  (teclado)",  overlay);
-    QPushButton *btn1vIA = new QPushButton("Nivel 1 — 1 vs Maquina (IA)",  overlay);
-    QPushButton *btn2v1  = new QPushButton("Nivel 2 — 1 vs 1  (teclado)",  overlay);
-    QPushButton *btn2vIA = new QPushButton("Nivel 2 — 1 vs Maquina (IA)",  overlay);
+    QPushButton *btn1v1  = new QPushButton("Nivel 1 - 1 vs 1  (teclado)",  overlay);
+    QPushButton *btn1vIA = new QPushButton("Nivel 1 - 1 vs Maquina (IA)",  overlay);
+    QPushButton *btn2v1  = new QPushButton("Nivel 2 - 1 vs 1  (teclado)",  overlay);
+    QPushButton *btn2vIA = new QPushButton("Nivel 2 - 1 vs Maquina (IA)",  overlay);
 
     for (auto *b : {btn1v1, btn1vIA, btn2v1, btn2vIA}) {
         b->setStyleSheet(btnStyle);
@@ -84,13 +82,14 @@ void Game::mostrarMenu() {
     overlay->show();
 }
 
-// ---------------------------------------------------------------------------
 void Game::iniciarNivel1(bool vsIA) {
     limpiarNivel();
     Nivel1 *n = new Nivel1(vsIA ? Nivel::VS_MAQUINA : Nivel::VS_HUMANO);
     n->inicializar();
     nivel_ = n;
-    view_->setScene(nivel_);
+    // cast explicito: Nivel hereda QGraphicsScene, pero el compilador
+    // necesita verlo como QGraphicsScene* para view_->setScene()
+    view_->setScene(static_cast<QGraphicsScene*>(nivel_));
     view_->setFocus();
     connect(nivel_, &Nivel::golAnotado,     this, &Game::onGol);
     connect(nivel_, &Nivel::nivelTerminado, this, &Game::onNivelTerminado);
@@ -101,19 +100,17 @@ void Game::iniciarNivel2(bool vsIA) {
     Nivel2 *n = new Nivel2(vsIA ? Nivel::VS_MAQUINA : Nivel::VS_HUMANO);
     n->inicializar();
     nivel_ = n;
-    view_->setScene(nivel_);
+    view_->setScene(static_cast<QGraphicsScene*>(nivel_));
     view_->setFocus();
     connect(nivel_, &Nivel::golAnotado,     this, &Game::onGol);
     connect(nivel_, &Nivel::nivelTerminado, this, &Game::onNivelTerminado);
 }
 
 void Game::onGol(int jugador) {
-    // TODO Momento 4: actualizar HUD con el marcador
     Q_UNUSED(jugador);
 }
 
 void Game::onNivelTerminado() {
-    // Breve pausa antes de volver al menu
     QTimer::singleShot(2000, this, &Game::mostrarMenu);
 }
 

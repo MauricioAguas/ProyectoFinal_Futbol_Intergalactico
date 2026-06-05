@@ -1,4 +1,5 @@
 #include "hds/JugadorIA.h"
+#include <QPainter>
 #include <cmath>
 #include <cstdlib>
 
@@ -11,149 +12,118 @@ JugadorIA::JugadorIA(const QString &nombre,
       balonVisible_(false),
       objetivoX_(xArco), debeAtacar_(false),
       xArco_(xArco),
-      enSuelo_(true), vy_(0.0f),
+      enSuelo_(true), vy_(0.0f), suelo_(400.0f),
       tendenciaRival_(0.0f), modificadorReaccion_(1.0f)
 {
     timerDecision_ = new QTimer(this);
     connect(timerDecision_, &QTimer::timeout, this, &JugadorIA::cicloDecision);
-    timerDecision_->start(300);  // decide cada 300 ms
+    timerDecision_->start(300);
 }
 
 JugadorIA::~JugadorIA() {}
 
-// ---------------------------------------------------------------------------
-// a) Percepcion — llamado por el Nivel cada tick
-// ---------------------------------------------------------------------------
+QRectF JugadorIA::boundingRect() const {
+    float totalAlto  = RADIO_CABEZA * 2 + ALTO_CUERPO;
+    float totalAncho = qMax(RADIO_CABEZA * 2, ANCHO_CUERPO);
+    return QRectF(-totalAncho / 2, -RADIO_CABEZA * 2, totalAncho, totalAlto);
+}
+
+void JugadorIA::paint(QPainter *painter,
+                      const QStyleOptionGraphicsItem *,
+                      QWidget *)
+{
+    painter->setRenderHint(QPainter::Antialiasing);
+
+    // Cuerpo gris metalico
+    painter->setBrush(QColor(120, 120, 120));
+    painter->setPen(Qt::NoPen);
+    painter->drawRect(QRectF(-ANCHO_CUERPO / 2, 0, ANCHO_CUERPO, ALTO_CUERPO));
+
+    // Cabeza metalica
+    QColor colorCabeza = balonVisible_ ? QColor(200, 200, 80) : QColor(180, 180, 180);
+    painter->setBrush(colorCabeza);
+    painter->setPen(QPen(Qt::white, 1.5));
+    painter->drawEllipse(QRectF(-RADIO_CABEZA, -RADIO_CABEZA * 2,
+                                RADIO_CABEZA * 2, RADIO_CABEZA * 2));
+
+    // Ojos (rectangulares — estilo robot)
+    painter->setBrush(QColor(255, 255, 100));
+    painter->setPen(Qt::NoPen);
+    painter->drawRect(QRectF(-11, -RADIO_CABEZA * 1.6f, 8, 5));
+    painter->drawRect(QRectF(3,   -RADIO_CABEZA * 1.6f, 8, 5));
+
+    // Nombre
+    painter->setPen(Qt::white);
+    painter->setFont(QFont("Arial", 7));
+    painter->drawText(QRectF(-24, ALTO_CUERPO + 2, 48, 12),
+                      Qt::AlignCenter, nombre_);
+}
+
 void JugadorIA::percibir(float balonX, float balonY,
                          float jugadorX, float jugadorY) {
-    rivalX_ = jugadorX;
-    rivalY_ = jugadorY;
-
+    rivalX_ = jugadorX; rivalY_ = jugadorY;
     float dist = std::sqrt((balonX - x_) * (balonX - x_) +
                            (balonY - y_) * (balonY - y_));
     balonVisible_ = (dist <= RADIO_PERCEPCION);
-    if (balonVisible_) {
-        balonX_ = balonX;
-        balonY_ = balonY;
-    }
+    if (balonVisible_) { balonX_ = balonX; balonY_ = balonY; }
 }
 
-// ---------------------------------------------------------------------------
-// b) Razonamiento — interpreta el estimulo y elige accion
-// ---------------------------------------------------------------------------
 void JugadorIA::razonar() {
-    if (!balonVisible_) {
-        // No ve el balon: volver a defender el arco
-        debeAtacar_ = false;
-        objetivoX_  = xArco_;
-        return;
-    }
-
-    // Si el balon se acerca a su arco, atacar; si esta lejos, defender
+    if (!balonVisible_) { debeAtacar_ = false; objetivoX_ = xArco_; return; }
     float distBalonArco = std::abs(balonX_ - xArco_);
     debeAtacar_ = (distBalonArco < 300.0f);
-
-    if (debeAtacar_) {
-        // Ajuste por tendencia aprendida: si el rival tiende a ir a la derecha,
-        // anticiparse un poco hacia ese lado
-        objetivoX_ = balonX_ + tendenciaRival_ * 20.0f;
-    } else {
-        objetivoX_ = xArco_;
-    }
+    objetivoX_ = debeAtacar_ ? balonX_ + tendenciaRival_ * 20.0f : xArco_;
 }
 
-// ---------------------------------------------------------------------------
-// d) Aprendizaje — actualiza tendencia segun historial del balon
-// ---------------------------------------------------------------------------
 void JugadorIA::aprender() {
     if (balonVisible_) {
         historialBalonX_.append(balonX_);
-        if (historialBalonX_.size() > 20)
-            historialBalonX_.removeFirst();
+        if (historialBalonX_.size() > 20) historialBalonX_.removeFirst();
     }
-
     if (historialBalonX_.size() < 5) return;
-
-    // Calcular tendencia: promedio de la mitad reciente vs la mitad anterior
-    float sumaReciente = 0, sumaAnterior = 0;
-    int   mitad = historialBalonX_.size() / 2;
-    for (int i = 0; i < mitad; i++)       sumaAnterior += historialBalonX_[i];
-    for (int i = mitad; i < historialBalonX_.size(); i++) sumaReciente += historialBalonX_[i];
-
-    float promAnterior = sumaAnterior / mitad;
-    float promReciente = sumaReciente / (historialBalonX_.size() - mitad);
-    tendenciaRival_    = (promReciente - promAnterior > 0) ? 1.0f : -1.0f;
-
-    // Aumentar modificador de reaccion con la experiencia (max 1.5)
-    if (modificadorReaccion_ < 1.5f)
-        modificadorReaccion_ += 0.02f;
+    float sumaR = 0, sumaA = 0;
+    int mitad = historialBalonX_.size() / 2;
+    for (int i = 0;     i < mitad;                      i++) sumaA += historialBalonX_[i];
+    for (int i = mitad; i < historialBalonX_.size();    i++) sumaR += historialBalonX_[i];
+    tendenciaRival_ = ((sumaR / (historialBalonX_.size() - mitad))
+                       - (sumaA / mitad)) > 0 ? 1.0f : -1.0f;
+    if (modificadorReaccion_ < 1.5f) modificadorReaccion_ += 0.02f;
 }
 
-// ---------------------------------------------------------------------------
-// Slot del timer: ciclo completo percibir -> razonar -> aprender cada 300ms
-// ---------------------------------------------------------------------------
-void JugadorIA::cicloDecision() {
-    razonar();
-    aprender();
-}
+void JugadorIA::cicloDecision() { razonar(); aprender(); }
 
-// ---------------------------------------------------------------------------
-// c) Accion — actualizar movimiento hacia el objetivo cada tick
-// ---------------------------------------------------------------------------
 void JugadorIA::actualizar() {
     if (!activo_) return;
-
     float velReal = velocidad_ * modificadorReaccion_;
-
-    // Mover horizontalmente hacia objetivoX_
     float dx = 0.0f;
     float diff = objetivoX_ - x_;
-    if (std::abs(diff) > 5.0f)
-        dx = (diff > 0) ? velReal : -velReal;
+    if (std::abs(diff) > 5.0f) dx = (diff > 0) ? velReal : -velReal;
 
-    // Saltar si el balon esta mas alto y la IA esta en el suelo
     if (balonVisible_ && balonY_ < y_ - 30.0f && enSuelo_) {
-        vy_      = IMPULSO_SALTO;
-        enSuelo_ = false;
+        vy_ = IMPULSO_SALTO; enSuelo_ = false;
     }
-
-    // Fisica de caida
     if (!enSuelo_) vy_ += GRAVEDAD;
     float nuevoY = y_ + vy_;
-    if (nuevoY >= suelo_) {   // suelo_ heredado como y_ inicial
-        nuevoY   = suelo_;
-        vy_      = 0.0f;
-        enSuelo_ = true;
-    }
+    if (nuevoY >= suelo_) { nuevoY = suelo_; vy_ = 0.0f; enSuelo_ = true; }
 
     mover(dx, nuevoY - y_);
+    update();
 }
 
 void JugadorIA::mover(float dx, float dy) {
-    x_ += dx;
-    y_ += dy;
-    setPos(x_, y_);
+    x_ += dx; y_ += dy; setPos(x_, y_);
 }
 
-// ---------------------------------------------------------------------------
-// contacto — el Nivel llama esto cuando el balon toca a la IA
-// ---------------------------------------------------------------------------
 void JugadorIA::contacto(Balon *balon) {
-    // Impulso hacia el arco rival (siempre al lado opuesto de xArco_)
-    float dirX  = (xArco_ < 400) ? 1.0f : -1.0f;  // direccion de ataque
-    float impX  = dirX * velocidad_ * modificadorReaccion_ * 1.5f;
-    float impY  = enSuelo_ ? -6.0f : vy_ * 1.2f;
+    float dirX = (xArco_ < 400) ? 1.0f : -1.0f;
+    float impX = dirX * velocidad_ * modificadorReaccion_ * 1.5f;
+    float impY = enSuelo_ ? -6.0f : vy_ * 1.2f;
     balon->lanzar(impX, impY);
 }
 
 void JugadorIA::reiniciar() {
-    enSuelo_           = true;
-    vy_                = 0.0f;
-    balonVisible_      = false;
-    debeAtacar_        = false;
-    objetivoX_         = xArco_;
-    tendenciaRival_    = 0.0f;
-    modificadorReaccion_ = 1.0f;
-    historialBalonX_.clear();
-    activo_ = true;
+    enSuelo_ = true; vy_ = 0.0f; balonVisible_ = false;
+    debeAtacar_ = false; objetivoX_ = xArco_;
+    tendenciaRival_ = 0.0f; modificadorReaccion_ = 1.0f;
+    historialBalonX_.clear(); activo_ = true; update();
 }

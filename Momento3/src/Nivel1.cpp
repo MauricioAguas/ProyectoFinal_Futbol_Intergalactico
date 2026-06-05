@@ -5,7 +5,6 @@
 #include "hds/Arco.h"
 #include <QKeyEvent>
 #include <QGraphicsRectItem>
-#include <QGraphicsPixmapItem>
 #include <QPixmap>
 
 Nivel1::Nivel1(ModoJuego modo, QObject *parent)
@@ -19,28 +18,23 @@ void Nivel1::inicializar() {
     altoEscena_  = 500;
     setSceneRect(0, 0, anchoEscena_, altoEscena_);
 
-    // Fondo: intentar cargar imagen, si no existe usar color solido
     QPixmap fondoPx(":/assets/fondo_nivel1.png");
-    if (!fondoPx.isNull()) {
+    if (!fondoPx.isNull())
         setBackgroundBrush(QBrush(fondoPx.scaled(anchoEscena_, altoEscena_)));
-    } else {
-        setBackgroundBrush(QBrush(QColor(10, 10, 40)));  // azul espacial
-    }
+    else
+        setBackgroundBrush(QBrush(QColor(10, 10, 40)));
 
-    // Suelo visual
-    QGraphicsRectItem *suelo = addRect(0, 440, 800, 20,
-                                       QPen(Qt::NoPen),
-                                       QBrush(QColor(40, 120, 40)));
-    Q_UNUSED(suelo);
+    // Suelo
+    addRect(0, 440, 800, 20, QPen(Qt::NoPen), QBrush(QColor(40, 120, 40)));
 
-    // Jugador 1 — cabezon cyan (Fry)
+    // Jugador 1 — cyan (Fry)
     jugador1_ = new Jugador("Fry", 4.0f,
                             Qt::Key_A, Qt::Key_D, Qt::Key_W,
                             QColor(100, 200, 255));
     jugador1_->setPosicion(150, 380);
     addItem(jugador1_);
 
-    // Jugador 2 — cabezon gris metalico (Bender) o IA
+    // Jugador 2
     if (modo_ == VS_HUMANO) {
         Jugador *j2 = new Jugador("Bender", 4.0f,
                                   Qt::Key_Left, Qt::Key_Right, Qt::Key_Up,
@@ -54,14 +48,15 @@ void Nivel1::inicializar() {
     }
     addItem(jugador2_);
 
-    // Balon
+    // Balon (modo parabolico)
     balon_ = new Balon();
+    balon_->setModoParabolico(true);
     balon_->setBounds(anchoEscena_, altoEscena_);
     balon_->setPosicion(390, 360);
     balon_->lanzar(3.0f, -8.0f);
     addItem(balon_);
 
-    // Arcos
+    // Arcos laterales
     arcoIzq_ = new Arco(Arco::PLANET_EXPRESS);
     arcoIzq_->setPosicion(0, 340);
     addItem(arcoIzq_);

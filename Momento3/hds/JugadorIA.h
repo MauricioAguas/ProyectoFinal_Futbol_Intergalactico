@@ -5,22 +5,12 @@
 #include "Balon.h"
 #include <QTimer>
 #include <QList>
+#include <QColor>
 
 /*
- JugadorIA — segundo jugador controlado por la maquina.
- Representa al cabezon rival (Bender) en modo 1 vs Maquina.
-
- Implementa el agente autonomo del Momento 1:
-   a) Percepcion  : detecta posicion del balon dentro de su radio (200 px).
-   b) Razonamiento: decide si atacar (ir al balon) o posicionarse (defender arco).
-   c) Accion      : se mueve y salta hacia la posicion objetivo.
-   d) Aprendizaje : guarda historial de posiciones del balon;
-                    si el rival siempre va hacia un lado, aumenta reaccion
-                    en esa direccion.
-
- Personalidad (Momento 1):
-   - Calculador : reacciona mas rapido conforme aprende (velocidad crece).
-   - Erratico   : ocasionalmente comete errores al predecir (humaniza la IA).
+ JugadorIA — agente autonomo (Bender).
+ Percepcion, razonamiento, accion y aprendizaje.
+ Se dibuja como cabezon gris metalico.
 */
 class JugadorIA : public Personaje {
     Q_OBJECT
@@ -28,50 +18,51 @@ class JugadorIA : public Personaje {
 public:
     explicit JugadorIA(const QString &nombre,
                        float velocidad,
-                       float xArco,        // coordenada X del arco que defiende
+                       float xArco,
                        QGraphicsItem *parent = nullptr);
     ~JugadorIA();
 
-    // --- Personaje interface ---
     void mover(float dx, float dy) override;
-    void contacto(Balon *balon)    override;  // aplica impulso al balon
+    void contacto(Balon *balon)    override;
     void actualizar()              override;
     void reiniciar()               override;
 
-    // Llamado por el Nivel cada tick para pasarle la info del mundo
+    QRectF boundingRect() const override;
+    void   paint(QPainter *painter,
+                 const QStyleOptionGraphicsItem *option,
+                 QWidget *widget = nullptr) override;
+
     void percibir(float balonX, float balonY,
                   float jugadorX, float jugadorY);
 
 private:
-    // a) Percepcion
-    float balonX_,  balonY_;    // ultima posicion percibida del balon
-    float rivalX_,  rivalY_;    // ultima posicion percibida del rival
-    bool  balonVisible_;        // true si el balon esta dentro del radio
+    float balonX_, balonY_, rivalX_, rivalY_;
+    bool  balonVisible_;
     static constexpr float RADIO_PERCEPCION = 250.0f;
 
-    // b) Razonamiento
-    float objetivoX_;           // posicion X a la que decidio moverse
-    bool  debeAtacar_;          // true=ir al balon, false=defender arco
-    void  razonar();            // toma de decision
+    float objetivoX_;
+    bool  debeAtacar_;
+    void  razonar();
 
-    // c) Accion
-    float xArco_;               // X del arco propio (para posicion defensiva)
+    float xArco_;
     bool  enSuelo_;
     float vy_;
+    float suelo_;
     static constexpr float GRAVEDAD      = 0.5f;
     static constexpr float IMPULSO_SALTO = -12.0f;
+    static constexpr float RADIO_CABEZA  = 24.0f;
+    static constexpr float ANCHO_CUERPO  = 18.0f;
+    static constexpr float ALTO_CUERPO   = 20.0f;
 
-    // d) Aprendizaje
-    QList<float> historialBalonX_;          // max 20 posiciones guardadas
-    float        tendenciaRival_;           // -1=siempre izq, +1=siempre der
-    float        modificadorReaccion_;      // crece con el aprendizaje (max 1.5)
-    void         aprender();                // actualiza tendencia y modificador
+    QList<float> historialBalonX_;
+    float        tendenciaRival_;
+    float        modificadorReaccion_;
+    void         aprender();
 
-    // Timer para pulso de decision (no decide cada tick, sino cada 300 ms)
     QTimer *timerDecision_;
 
 private slots:
-    void cicloDecision();   // percibir + razonar + aprender cada 300 ms
+    void cicloDecision();
 };
 
 #endif // JUGADORIA_H

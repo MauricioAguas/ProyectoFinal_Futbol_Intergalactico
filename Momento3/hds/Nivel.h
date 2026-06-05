@@ -4,17 +4,15 @@
 #include <QGraphicsScene>
 #include <QObject>
 #include <QTimer>
-
-class Jugador;
-class JugadorIA;
-class Balon;
-class Arco;
+#include "Jugador.h"
+#include "JugadorIA.h"
+#include "Personaje.h"
+#include "Balon.h"
+#include "Arco.h"
 
 /*
  Clase base abstracta para los niveles del juego.
  Hereda de QGraphicsScene: cada nivel ES la escena Qt.
- Coordina las entidades, detecta colisiones y mantiene
- el marcador y el timer de partido.
 */
 class Nivel : public QGraphicsScene {
     Q_OBJECT
@@ -25,46 +23,39 @@ public:
     explicit Nivel(ModoJuego modo, QObject *parent = nullptr);
     virtual ~Nivel();
 
-    // Subclases deben implementar la inicializacion propia
     virtual void inicializar() = 0;
 
-    // Getters de estado
     int  getGoles(int jugador) const { return goles_[jugador]; }
     int  getTiempoRestante()   const { return tiempoRestante_; }
     bool estaActivo()          const { return activo_; }
 
 signals:
-    void golAnotado(int jugador);   // emitido cuando entra un gol
-    void tiempoAgotado();           // emitido cuando el timer llega a 0
-    void nivelTerminado();          // emitido al acabar el nivel
+    void golAnotado(int jugador);
+    void tiempoAgotado();
+    void nivelTerminado();
 
 protected slots:
-    void tickJuego();               // avanza la logica un frame (60 fps)
-    void tickTimer();               // descuenta 1 segundo del partido
+    void tickJuego();
+    void tickTimer();
 
 protected:
-    // Entidades compartidas por ambos niveles
-    Jugador   *jugador1_;   // siempre humano
-    Personaje *jugador2_;   // Jugador (vs humano) o JugadorIA (vs maquina)
+    Jugador   *jugador1_;    // siempre humano
+    Personaje *jugador2_;    // Jugador o JugadorIA segun modo
     Balon     *balon_;
     Arco      *arcoIzq_;
     Arco      *arcoDer_;
 
     ModoJuego modo_;
-    int       goles_[2];        // goles_[0]=J1, goles_[1]=J2
-    int       tiempoRestante_;  // segundos restantes del partido
+    int       goles_[2];
+    int       tiempoRestante_;
     bool      activo_;
 
-    QTimer *timerFrame_;    // 60 fps  (16 ms)
-    QTimer *timerSegundo_;  // 1 seg   (1000 ms)
+    QTimer *timerFrame_;
+    QTimer *timerSegundo_;
 
-    // Detecta si el balon entro en alguno de los arcos
     void verificarGol();
-
-    // Detecta si el balon toco a algun jugador y llama contacto()
     void verificarContactos();
 
-    // Limites del campo (subclases los fijan en inicializar)
     int anchoEscena_;
     int altoEscena_;
 };

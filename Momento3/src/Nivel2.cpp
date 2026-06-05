@@ -6,6 +6,7 @@
 #include <QKeyEvent>
 #include <QGraphicsRectItem>
 #include <QGraphicsEllipseItem>
+#include <QPixmap>
 #include <cmath>
 
 Nivel2::Nivel2(ModoJuego modo, QObject *parent)
@@ -19,25 +20,31 @@ void Nivel2::inicializar() {
     altoEscena_  = 600;
     setSceneRect(0, 0, anchoEscena_, altoEscena_);
 
-    setBackgroundBrush(QBrush(QColor(5, 5, 30)));
+    QPixmap fondoPx(":/assets/fondo_nivel2.png");
+    if (!fondoPx.isNull())
+        setBackgroundBrush(QBrush(fondoPx.scaled(anchoEscena_, altoEscena_)));
+    else
+        setBackgroundBrush(QBrush(QColor(5, 5, 30)));
 
-    // Paredes de energia (decorativas — colision la maneja Balon::actualizar)
+    // Paredes de energia
     QPen penPared(QColor(120, 0, 200), 6);
-    addLine(0,   0,   800, 0,   penPared);  // arriba
-    addLine(0,   600, 800, 600, penPared);  // abajo
-    addLine(0,   0,   0,   600, penPared);  // izquierda
-    addLine(800, 0,   800, 600, penPared);  // derecha
+    addLine(0,   0,   800, 0,   penPared);
+    addLine(0,   600, 800, 600, penPared);
+    addLine(0,   0,   0,   600, penPared);
+    addLine(800, 0,   800, 600, penPared);
 
-    // Jugador 1 — teclas WASD
+    // Jugador 1
     jugador1_ = new Jugador("Fry", 4.0f,
-                            Qt::Key_A, Qt::Key_D, Qt::Key_W);
+                            Qt::Key_A, Qt::Key_D, Qt::Key_W,
+                            QColor(100, 200, 255));
     jugador1_->setPosicion(150, 280);
     addItem(jugador1_);
 
     // Jugador 2
     if (modo_ == VS_HUMANO) {
         Jugador *j2 = new Jugador("Bender", 4.0f,
-                                  Qt::Key_Left, Qt::Key_Right, Qt::Key_Up);
+                                  Qt::Key_Left, Qt::Key_Right, Qt::Key_Up,
+                                  QColor(180, 180, 180));
         j2->setPosicion(600, 280);
         jugador2_ = j2;
     } else {
@@ -47,14 +54,15 @@ void Nivel2::inicializar() {
     }
     addItem(jugador2_);
 
-    // Balon — modo rebote (nivel 2, sin parabola)
+    // Balon (modo rebote, sin parabola)
     balon_ = new Balon();
+    balon_->setModoParabolico(false);
     balon_->setBounds(anchoEscena_, altoEscena_);
     balon_->setPosicion(390, 290);
-    balon_->lanzar(5.0f, 4.0f);  // saque inicial diagonal
+    balon_->lanzar(5.0f, 4.0f);
     addItem(balon_);
 
-    // Arcos: arriba y abajo (cenital)
+    // Arcos cenital (arriba y abajo)
     arcoIzq_ = new Arco(Arco::PLANET_EXPRESS);
     arcoIzq_->setPosicion(340, 0);
     addItem(arcoIzq_);
@@ -64,8 +72,6 @@ void Nivel2::inicializar() {
     addItem(arcoDer_);
 
     crearObstaculos();
-
-    // Conectar tick extra para obstaculos
     connect(timerFrame_, &QTimer::timeout, this, &Nivel2::actualizarObstaculos);
 
     activo_ = true;
@@ -73,10 +79,6 @@ void Nivel2::inicializar() {
     timerSegundo_->start(1000);
 }
 
-// ---------------------------------------------------------------------------
-// Obstaculos oscilantes — fisica sinusoidal (Momento 1)
-// x(t) = xBase + A * sin(2*pi*f*t + fase)
-// ---------------------------------------------------------------------------
 void Nivel2::crearObstaculos() {
     auto agregar = [&](float xb, float yb, float amp, float frec, float fase) {
         QGraphicsEllipseItem *item = addEllipse(-15, -15, 30, 30,
@@ -91,16 +93,13 @@ void Nivel2::crearObstaculos() {
 }
 
 void Nivel2::actualizarObstaculos() {
-    tiempoOsc_ += 0.016f;  // delta t en segundos
+    tiempoOsc_ += 0.016f;
     for (auto &obs : obstaculos_) {
         float nuevaX = obs.xBase + obs.amplitud *
                        std::sin(2.0f * M_PI * obs.frecuencia * tiempoOsc_ + obs.fase);
         obs.item->setPos(nuevaX, obs.yBase);
-
-        // Si el balon colisiona con el obstaculo, rebota
-        if (balon_ && balon_->collidesWithItem(obs.item)) {
-            balon_->aplicarRebote(true);   // invertir vx
-        }
+        if (balon_ && balon_->collidesWithItem(obs.item))
+            balon_->aplicarRebote(true);
     }
 }
 

@@ -3,10 +3,6 @@
 
 #include "Entidad.h"
 
-
-// porteria del campo intergalactico
-// Detecta colision del balon para registrar un gol
-
 class Arco : public Entidad {
     Q_OBJECT
 
@@ -19,13 +15,18 @@ public:
     void actualizar() override;
     void reiniciar()  override;
 
-    bool detectarGol(float balX, float balY) const;
+    QRectF boundingRect() const override;
+    void   paint(QPainter *painter,
+                 const QStyleOptionGraphicsItem *option,
+                 QWidget *widget = nullptr) override;
+
+    bool   detectarGol(float balX, float balY) const;
     Equipo getEquipo() const { return equipo_; }
 
 private:
     Equipo equipo_;
-    float  ancho_;
-    float  alto_;
+    static constexpr float ANCHO = 20.0f;
+    static constexpr float ALTO  = 100.0f;
 };
 
 #endif // ARCO_H
