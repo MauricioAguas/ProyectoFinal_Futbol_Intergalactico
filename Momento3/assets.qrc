@@ -6,5 +6,6 @@
     <file alias="fry.png">assets/fry.png</file>
     <file alias="bender.png">assets/bender.png</file>
     <file alias="zapato.png">assets/zapato.png</file>
+    <file alias="menu.png">assets/menu.png</file>
 </qresource>
 </RCC>

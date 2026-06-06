@@ -3,6 +3,7 @@
 #include "hds/Nivel2.h"
 #include <QGraphicsView>
 #include <QGraphicsTextItem>
+#include <QGraphicsPixmapItem>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QPushButton>
@@ -10,9 +11,9 @@
 #include <QTimer>
 #include <QPixmap>
 
-// Dimensiones fijas del menu y de los niveles
-static const int GM_MENU_W  = 500;
-static const int GM_MENU_H  = 520;
+// Dimensiones del menu (proporcion 1645x926 reducida a ~820x462)
+static const int GM_MENU_W  = 820;
+static const int GM_MENU_H  = 462;
 static const int GM_NIVEL_W = 800;
 static const int GM_NIVEL_H = 450;
 
@@ -45,34 +46,35 @@ void Game::mostrarMenu() {
 
     QGraphicsScene *menu = new QGraphicsScene(this);
     menu->setSceneRect(0, 0, GM_MENU_W, GM_MENU_H);
-    menu->setBackgroundBrush(QBrush(QColor(10, 10, 40)));
     view_->setScene(menu);
 
-    // Titulo
-    QGraphicsTextItem *titulo = menu->addText(
-        "FUTBOL INTERGALACTICO", QFont("Arial", 26, QFont::Bold));
-    titulo->setDefaultTextColor(QColor(255, 200, 0));
-    titulo->setPos((GM_MENU_W - titulo->boundingRect().width()) / 2, 50);
+    // Fondo: menu.png escalado a la ventana
+    QPixmap fondoMenu(":/assets/menu.png");
+    if (!fondoMenu.isNull()) {
+        QGraphicsPixmapItem *bg = menu->addPixmap(
+            fondoMenu.scaled(GM_MENU_W, GM_MENU_H,
+                             Qt::IgnoreAspectRatio,
+                             Qt::SmoothTransformation));
+        bg->setZValue(-1);
+    } else {
+        // Fallback si no encuentra la imagen
+        menu->setBackgroundBrush(QBrush(QColor(10, 10, 40)));
+    }
 
-    QGraphicsTextItem *sub = menu->addText(
-        "Futurama - Anno 3000", QFont("Arial", 13));
-    sub->setDefaultTextColor(QColor(180, 180, 255));
-    sub->setPos((GM_MENU_W - sub->boundingRect().width()) / 2, 110);
-
-    // Overlay con los 4 botones centrado en la vista
+    // Overlay con los 4 botones
     overlay_ = new QWidget(view_);
     overlay_->setStyleSheet("background: transparent;");
     overlay_->setGeometry(0, 0, GM_MENU_W, GM_MENU_H);
 
     auto btnStyle = QString(
         "QPushButton {"
-        "background:#1a1a5a; color:white; border:2px solid #4444ff;"
+        "background:rgba(10,10,80,200); color:white; border:2px solid #4444ff;"
         "border-radius:8px; font-size:15px; padding:10px 20px;}"
-        "QPushButton:hover{background:#3333aa;}");
+        "QPushButton:hover{background:rgba(50,50,170,220);}");
 
     QVBoxLayout *vlay = new QVBoxLayout(overlay_);
     vlay->setAlignment(Qt::AlignCenter);
-    vlay->addSpacing(180);
+    vlay->addSpacing(230);
 
     QPushButton *btn1v1  = new QPushButton("Nivel 1 - 1 vs 1  (teclado)",  overlay_);
     QPushButton *btn1vIA = new QPushButton("Nivel 1 - 1 vs Maquina (IA)",  overlay_);
@@ -83,7 +85,7 @@ void Game::mostrarMenu() {
         b->setStyleSheet(btnStyle);
         b->setFixedWidth(320);
         vlay->addWidget(b, 0, Qt::AlignCenter);
-        vlay->addSpacing(10);
+        vlay->addSpacing(8);
     }
 
     connect(btn1v1,  &QPushButton::clicked, this, [this]{ iniciarNivel1(false); });
@@ -96,7 +98,7 @@ void Game::mostrarMenu() {
 
 void Game::iniciarNivel1(bool vsIA) {
     limpiarNivel();
-    redimensionar(GM_NIVEL_W,GM_NIVEL_H);
+    redimensionar(GM_NIVEL_W, GM_NIVEL_H);
     Nivel1 *n = new Nivel1(vsIA ? Nivel::VS_MAQUINA : Nivel::VS_HUMANO);
     n->inicializar();
     nivel_ = n;

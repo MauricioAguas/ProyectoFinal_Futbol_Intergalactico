@@ -19,7 +19,7 @@ Jugador::Jugador(const QString &nombre,
       teclaSalto_(teclaSalto), teclaPatada_(Qt::Key_unknown),
       presIzq_(false), presDer_(false), presSalto_(false),
       anguloPatada_(0.0f), pateando_(false),
-      vy_(0.0f), enSuelo_(true), suelo_(355.0f),
+      vy_(0.0f), enSuelo_(true), suelo_(360.0f),
       velocidadBase_(velocidad), modificadorVelocidad_(1.0f),
       enPanico_(false), color_(color), reflejar_(reflejar)
 {
@@ -52,9 +52,8 @@ QPainterPath Jugador::shape() const {
                             RADIO_CABEZA * 1.4f,  RADIO_CABEZA * 1.4f));
 
     // Hitbox extendida del zapato: activa al saltar y patear
-    // Cubre la zona del zapato hacia abajo para detectar el balon
     if (!enSuelo_ && pateando_) {
-        // En el aire pateando: zona amplia hacia abajo (zapato en pleno swing)
+        // En el aire pateando: zona amplia hacia abajo
         path.addRect(QRectF(-ANCHO_ZAPATO / 2, ZAP_PIVOT_Y - ALTO_ZAPATO,
                              ANCHO_ZAPATO,      ALTO_ZAPATO + 18.0f));
     } else if (!enSuelo_) {
@@ -106,7 +105,6 @@ void Jugador::paint(QPainter *painter,
             pixZapato_, QRectF(pixZapato_.rect()));
         painter->restore();
     }
-    // Nombre eliminado
 }
 
 void Jugador::keyPress(Qt::Key key) {
