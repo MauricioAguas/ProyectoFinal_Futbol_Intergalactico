@@ -43,13 +43,13 @@ protected:
 
     ModoJuego modo_;
     int       goles_[2];
-    int       tiempoRestante_;  // cada nivel lo fija en inicializar()
+    int       tiempoRestante_;
     bool      activo_;
 
     QTimer *timerFrame_;
     QTimer *timerSegundo_;
 
-    void verificarGol();
+    virtual void verificarGol();   // virtual para que Nivel2 pueda sobreescribirla
     void verificarContactos();
 
     int anchoEscena_;
