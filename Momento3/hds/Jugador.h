@@ -7,11 +7,6 @@
 #include <QTimer>
 #include <QColor>
 
-/*
- Jugador controlado por teclado.
- Se dibuja como un cabezon con formas Qt puras.
- Personalidades: Turbo-cafeina y Panico espacial.
-*/
 class Jugador : public Personaje {
     Q_OBJECT
 
@@ -35,10 +30,14 @@ public:
                  const QStyleOptionGraphicsItem *option,
                  QWidget *widget = nullptr) override;
 
+    // Hitbox reducida para colision real con el balon
+    QPainterPath shape() const override;
+
     void keyPress(Qt::Key key);
     void keyRelease(Qt::Key key);
 
     bool estaEnElSuelo() const { return enSuelo_; }
+    void setSuelo(float y)     { suelo_ = y; }   // permite al nivel fijar el suelo
     void activarTurboCafeina();
 
 private slots:
@@ -51,7 +50,7 @@ private:
 
     float vy_;
     bool  enSuelo_;
-    float suelo_;
+    float suelo_;   // Y del suelo — se fija desde el nivel
 
     static constexpr float GRAVEDAD      = 0.5f;
     static constexpr float IMPULSO_SALTO = -12.0f;

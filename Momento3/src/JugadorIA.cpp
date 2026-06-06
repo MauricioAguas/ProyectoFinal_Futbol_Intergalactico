@@ -23,11 +23,10 @@ JugadorIA::JugadorIA(const QString &nombre,
 JugadorIA::~JugadorIA() {}
 
 QRectF JugadorIA::boundingRect() const {
-    float totalAlto  = RADIO_CABEZA * 2 + ALTO_CUERPO;
-    float totalAncho = qMax(RADIO_CABEZA * 2, ANCHO_CUERPO);
+    float totalAlto  = RADIO_CABEZA * 2 + ALTO_CUERPO + 16; // +16 para el texto
+    float totalAncho = qMax(RADIO_CABEZA * 2, ANCHO_CUERPO) + 10;
     return QRectF(-totalAncho / 2, -RADIO_CABEZA * 2, totalAncho, totalAlto);
 }
-
 void JugadorIA::paint(QPainter *painter,
                       const QStyleOptionGraphicsItem *,
                       QWidget *)

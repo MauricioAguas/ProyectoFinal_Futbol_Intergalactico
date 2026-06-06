@@ -3,18 +3,8 @@
 
 #include <QMainWindow>
 #include <QGraphicsView>
+#include "Nivel.h"
 
-class Nivel;
-
-/*
- Game — ventana principal del juego.
- Hereda de QMainWindow.
- Responsabilidades:
-   - Mostrar el menu de inicio (1 vs 1 / vs Maquina).
-   - Instanciar y cambiar entre Nivel1 y Nivel2.
-   - Conectar las senales de los niveles (golAnotado, nivelTerminado)
-     con el HUD y la logica de flujo del juego.
-*/
 class Game : public QMainWindow {
     Q_OBJECT
 
@@ -22,20 +12,21 @@ public:
     explicit Game(QWidget *parent = nullptr);
     ~Game();
 
-    void mostrarMenu();
-
 private slots:
-    void iniciarNivel1(bool vsIA);  // arranca Nivel1 segun modo elegido
-    void iniciarNivel2(bool vsIA);  // arranca Nivel2
-    void onGol(int jugador);        // actualiza marcador en el HUD
-    void onNivelTerminado();        // muestra resultado y vuelve al menu
+    void mostrarMenu();
+    void onGol(int jugador);
+    void onNivelTerminado();
 
 private:
-    QGraphicsView *view_;    // vista Qt que muestra la escena activa
-    Nivel         *nivel_;   // nivel actualmente en juego (nullptr = menu)
-
-    void limpiarNivel();     // destruye el nivel actual de forma segura
+    void iniciarNivel1(bool vsIA);
+    void iniciarNivel2(bool vsIA);
+    void limpiarNivel();
     void setupView();
+    void redimensionar(int w, int h);   // cambia tamano de ventana y vista
+
+    QGraphicsView *view_;
+    Nivel         *nivel_;
+    QWidget       *overlay_;   // widget de botones del menu
 };
 
 #endif // GAME_H

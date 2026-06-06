@@ -2,15 +2,8 @@
 #define NIVEL1_H
 
 #include "Nivel.h"
+#include <QGraphicsTextItem>
 
-/*
- Nivel 1 — Vista lateral (cabezon clasico)
- - Campo con gravedad: el balon sigue trayectoria parabolica.
- - Los jugadores saltan para cabecear el balon.
- - Fondo: estadio intergalactico de Futurama.
- - Duracion: 90 segundos (timer de partido).
- - Fisicas: parabola del balon + salto del jugador (ambos con GRAVEDAD).
-*/
 class Nivel1 : public Nivel {
     Q_OBJECT
 
@@ -23,6 +16,12 @@ public:
 protected:
     void keyPressEvent(QKeyEvent *event)   override;
     void keyReleaseEvent(QKeyEvent *event) override;
+
+private slots:
+    void actualizarMarcador(int jugador);
+
+private:
+    QGraphicsTextItem *marcador_;   // "0  -  0" en la parte superior
 };
 
 #endif // NIVEL1_H

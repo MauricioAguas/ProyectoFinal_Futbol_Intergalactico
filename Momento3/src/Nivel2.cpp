@@ -4,9 +4,9 @@
 #include "hds/Balon.h"
 #include "hds/Arco.h"
 #include <QKeyEvent>
-#include <QGraphicsRectItem>
 #include <QGraphicsEllipseItem>
 #include <QPixmap>
+#include <QBrush>
 #include <cmath>
 
 Nivel2::Nivel2(ModoJuego modo, QObject *parent)
@@ -20,9 +20,13 @@ void Nivel2::inicializar() {
     altoEscena_  = 600;
     setSceneRect(0, 0, anchoEscena_, altoEscena_);
 
-    QPixmap fondoPx(":/assets/fondo_nivel2.png");
-    if (!fondoPx.isNull())
-        setBackgroundBrush(QBrush(fondoPx.scaled(anchoEscena_, altoEscena_)));
+    // Fondo desde QRC
+    QPixmap fondo(":/assets/fondo_nivel2.png");
+    if (!fondo.isNull())
+        setBackgroundBrush(QBrush(fondo.scaled(
+            anchoEscena_, altoEscena_,
+            Qt::IgnoreAspectRatio,
+            Qt::SmoothTransformation)));
     else
         setBackgroundBrush(QBrush(QColor(5, 5, 30)));
 
@@ -37,39 +41,38 @@ void Nivel2::inicializar() {
     jugador1_ = new Jugador("Fry", 4.0f,
                             Qt::Key_A, Qt::Key_D, Qt::Key_W,
                             QColor(100, 200, 255));
-    jugador1_->setPosicion(150, 280);
     addItem(jugador1_);
+    jugador1_->setPosicion(150, 280);
 
     // Jugador 2
     if (modo_ == VS_HUMANO) {
         Jugador *j2 = new Jugador("Bender", 4.0f,
                                   Qt::Key_Left, Qt::Key_Right, Qt::Key_Up,
                                   QColor(180, 180, 180));
-        j2->setPosicion(600, 280);
         jugador2_ = j2;
     } else {
         JugadorIA *ia = new JugadorIA("BenderIA", 3.5f, 720.0f);
-        ia->setPosicion(600, 280);
         jugador2_ = ia;
     }
     addItem(jugador2_);
+    jugador2_->setPosicion(600, 280);
 
-    // Balon (modo rebote, sin parabola)
+    // Balon modo rebote (Nivel 2 — vista cenital)
     balon_ = new Balon();
     balon_->setModoParabolico(false);
     balon_->setBounds(anchoEscena_, altoEscena_);
+    addItem(balon_);              // addItem ANTES de setPosicion
     balon_->setPosicion(390, 290);
     balon_->lanzar(5.0f, 4.0f);
-    addItem(balon_);
 
     // Arcos cenital (arriba y abajo)
     arcoIzq_ = new Arco(Arco::PLANET_EXPRESS);
-    arcoIzq_->setPosicion(340, 0);
     addItem(arcoIzq_);
+    arcoIzq_->setPosicion(340, 0);
 
     arcoDer_ = new Arco(Arco::OMICRON_XI);
-    arcoDer_->setPosicion(340, 565);
     addItem(arcoDer_);
+    arcoDer_->setPosicion(340, 565);
 
     crearObstaculos();
     connect(timerFrame_, &QTimer::timeout, this, &Nivel2::actualizarObstaculos);

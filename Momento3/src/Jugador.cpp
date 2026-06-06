@@ -1,5 +1,6 @@
 #include "hds/Jugador.h"
 #include <QPainter>
+#include <QPainterPath>
 #include <cstdlib>
 
 Jugador::Jugador(const QString &nombre,
@@ -12,7 +13,7 @@ Jugador::Jugador(const QString &nombre,
     : Personaje(nombre, 3, velocidad, parent),
       teclaIzq_(teclaIzq), teclaDer_(teclaDer), teclaSalto_(teclaSalto),
       presIzq_(false), presDer_(false), presSalto_(false),
-      vy_(0.0f), enSuelo_(true), suelo_(400.0f),
+      vy_(0.0f), enSuelo_(true), suelo_(350.0f),
       velocidadBase_(velocidad), modificadorVelocidad_(1.0f),
       enPanico_(false), color_(color)
 {
@@ -27,9 +28,18 @@ Jugador::Jugador(const QString &nombre,
 Jugador::~Jugador() {}
 
 QRectF Jugador::boundingRect() const {
-    float totalAlto  = RADIO_CABEZA * 2 + ALTO_CUERPO;
-    float totalAncho = qMax(RADIO_CABEZA * 2, ANCHO_CUERPO);
+    // Incluye cabeza + cuerpo + texto del nombre
+    float totalAlto  = RADIO_CABEZA * 2 + ALTO_CUERPO + 14;
+    float totalAncho = RADIO_CABEZA * 2 + 10;
     return QRectF(-totalAncho / 2, -RADIO_CABEZA * 2, totalAncho, totalAlto);
+}
+
+QPainterPath Jugador::shape() const {
+    // Hitbox reducida: solo la cabeza (circulo) para colision mas precisa
+    QPainterPath path;
+    path.addEllipse(QRectF(-RADIO_CABEZA * 0.7f, -RADIO_CABEZA * 2,
+                            RADIO_CABEZA * 1.4f,  RADIO_CABEZA * 1.4f));
+    return path;
 }
 
 void Jugador::paint(QPainter *painter,
@@ -84,6 +94,7 @@ void Jugador::actualizar() {
     if (presDer_) dx += velReal;
     if (enPanico_) dx += (float)(rand() % 5 - 2);
 
+    // Gravedad
     if (!enSuelo_) vy_ += GRAVEDAD;
     float nuevoY = y_ + vy_;
     if (nuevoY >= suelo_) { nuevoY = suelo_; vy_ = 0.0f; enSuelo_ = true; }

@@ -3,11 +3,6 @@
 
 #include "Entidad.h"
 
-/*
- Fisica del balon:
-  - Nivel 1 (lateral): trayectoria parabolica
-  - Nivel 2 (cenital): rebote en paredes
-*/
 class Balon : public Entidad {
     Q_OBJECT
 
@@ -18,11 +13,11 @@ public:
     void actualizar() override;
     void reiniciar()  override;
 
-    // QGraphicsItem interface
-    QRectF boundingRect() const override;
-    void   paint(QPainter *painter,
-                 const QStyleOptionGraphicsItem *option,
-                 QWidget *widget = nullptr) override;
+    QRectF       boundingRect() const override;
+    QPainterPath shape()        const override;
+    void         paint(QPainter *painter,
+                       const QStyleOptionGraphicsItem *option,
+                       QWidget *widget = nullptr) override;
 
     void  lanzar(float vx, float vy);
     void  aplicarRebote(bool horizontal);
@@ -43,7 +38,8 @@ private:
 
     static constexpr float GRAVEDAD   = 0.4f;
     static constexpr float ROZAMIENTO = 0.99f;
-    static constexpr float RADIO      = 12.0f;
+    static constexpr float RADIO      = 22.0f;  // radio visual
+    static constexpr float RADIO_HIT  = 14.0f;  // radio de colision
 };
 
 #endif // BALON_H
