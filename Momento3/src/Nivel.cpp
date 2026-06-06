@@ -62,14 +62,23 @@ void Nivel::verificarGol() {
     float vx = balon_->getVx();
     float vy = balon_->getVy();
 
+    bool gol = false;
     if (arcoIzq_ && arcoIzq_->detectarGol(bx, by, vx, vy)) {
         goles_[1]++;
         emit golAnotado(1);
         balon_->reiniciar();
+        gol = true;
     } else if (arcoDer_ && arcoDer_->detectarGol(bx, by, vx, vy)) {
         goles_[0]++;
         emit golAnotado(0);
         balon_->reiniciar();
+        gol = true;
+    }
+
+    // Notificar a la IA para que se posicione defensivamente tras el gol
+    if (gol && modo_ == VS_MAQUINA) {
+        JugadorIA *ia = dynamic_cast<JugadorIA*>(jugador2_);
+        if (ia) ia->alertarGol();
     }
 }
 

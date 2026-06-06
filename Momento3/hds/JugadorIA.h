@@ -31,6 +31,9 @@ public:
     void percibir(float balonX, float balonY,
                   float jugadorX, float jugadorY);
 
+    // Llamar tras un gol para que la IA se posicione defensivamente
+    void alertarGol();
+
     void moverHockey(float dx, float dy, float limIzq, float limDer,
                      float limTop, float limBot);
 
@@ -48,6 +51,10 @@ private:
 
     float objetivoX_, objetivoY_;
     bool  debeAtacar_;
+    bool  defendiendo_;      // true = acaba de recibir gol, vuelve a su arco
+    int   framesDefensa_;    // cuenta regresiva de frames en modo defensa
+    static constexpr int FRAMES_DEFENSA = 120; // ~2s a 60fps
+
     void  razonar();
 
     float xArco_;
@@ -56,14 +63,15 @@ private:
     float suelo_;
     float velActualX_;
     float velActualY_;
-    int   cooldownSalto_;  // frames restantes antes de poder volver a saltar
+    int   cooldownSalto_;
 
     static constexpr float GRAVEDAD           = 0.5f;
-    static constexpr float IMPULSO_SALTO      = -12.0f;
+    // IMPULSO_SALTO: negativo = hacia arriba. -9 = ~20px menos altura que -12
+    static constexpr float IMPULSO_SALTO      = -9.0f;
     // --- Ajusta estos valores para calibrar el salto de la IA ---
-    static constexpr float MIN_DIST_SALTO     = 80.0f;  // px verticales minimos para saltar
-    static constexpr float DIST_H_SALTO       = 120.0f; // px horizontales maximos para saltar
-    static constexpr int   FRAMES_COOLDOWN_SALTO = 90;  // ~1.5s a 60fps entre saltos
+    static constexpr float MIN_DIST_SALTO     = 80.0f;  // px verticales minimos
+    static constexpr float DIST_H_SALTO       = 120.0f; // px horizontales maximos
+    static constexpr int   FRAMES_COOLDOWN_SALTO = 90;  // ~1.5s entre saltos
 
     static constexpr float ANCHO_SPRITE  = 48.0f;
     static constexpr float ALTO_SPRITE   = 64.0f;

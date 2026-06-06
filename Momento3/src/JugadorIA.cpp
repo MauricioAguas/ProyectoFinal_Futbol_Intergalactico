@@ -13,6 +13,7 @@ JugadorIA::JugadorIA(const QString &nombre,
       balonVisible_(false),
       objetivoX_(xArco), objetivoY_(0),
       debeAtacar_(false),
+      defendiendo_(false), framesDefensa_(0),
       xArco_(xArco),
       enSuelo_(true), vy_(0.0f), suelo_(400.0f),
       velActualX_(0.0f), velActualY_(0.0f),
@@ -75,11 +76,27 @@ void JugadorIA::paint(QPainter *painter,
 void JugadorIA::percibir(float balonX, float balonY,
                          float jugadorX, float jugadorY) {
     rivalX_ = jugadorX; rivalY_ = jugadorY;
-    balonVisible_ = true;
-    balonX_ = balonX; balonY_ = balonY;
+    // En modo defensa no actualiza objetivo al balon
+    if (!defendiendo_) {
+        balonVisible_ = true;
+        balonX_ = balonX; balonY_ = balonY;
+    }
+}
+
+void JugadorIA::alertarGol() {
+    defendiendo_   = true;
+    framesDefensa_ = FRAMES_DEFENSA;
+    balonVisible_  = false;
+    // Posicion defensiva: frente a su arco, en el suelo
+    objetivoX_     = xArco_;
+    cooldownSalto_ = FRAMES_COOLDOWN_SALTO; // no saltar durante el reposicionamiento
 }
 
 void JugadorIA::razonar() {
+    if (defendiendo_) {
+        objetivoX_ = xArco_;
+        return;
+    }
     if (!balonVisible_) {
         debeAtacar_ = false;
         objetivoX_ = xArco_;
@@ -138,21 +155,24 @@ float JugadorIA::calcularDy() {
 void JugadorIA::actualizar() {
     if (!activo_) return;
 
+    // Cuenta regresiva del modo defensa
+    if (defendiendo_) {
+        if (framesDefensa_ > 0) framesDefensa_--;
+        else { defendiendo_ = false; balonVisible_ = true; }
+    }
+
     float dx = calcularDx();
 
     if (cooldownSalto_ > 0) cooldownSalto_--;
 
-    // Salto: solo si
-    //  1. El balon esta al menos MIN_DIST_SALTO px por encima
-    //  2. La IA esta cerca horizontalmente del balon (DIST_H_SALTO)
-    //  3. Paso el cooldown entre saltos
-    if (balonVisible_ && enSuelo_ && cooldownSalto_ == 0) {
-        float distV = y_ - balonY_;           // positivo = balon por encima
-        float distH = std::abs(x_ - balonX_); // distancia horizontal
+    // Salto: solo si no esta en modo defensa y se cumplen las 3 condiciones
+    if (!defendiendo_ && balonVisible_ && enSuelo_ && cooldownSalto_ == 0) {
+        float distV = y_ - balonY_;
+        float distH = std::abs(x_ - balonX_);
         if (distV > MIN_DIST_SALTO && distH < DIST_H_SALTO) {
             vy_ = IMPULSO_SALTO;
             enSuelo_ = false;
-            cooldownSalto_ = FRAMES_COOLDOWN_SALTO;  // ~1.5s a 60fps
+            cooldownSalto_ = FRAMES_COOLDOWN_SALTO;
         }
     }
 
@@ -201,6 +221,7 @@ void JugadorIA::contacto(Balon *balon) {
 void JugadorIA::reiniciar() {
     enSuelo_ = true; vy_ = 0.0f; balonVisible_ = false;
     debeAtacar_ = false; objetivoX_ = xArco_; objetivoY_ = y_;
+    defendiendo_ = false; framesDefensa_ = 0;
     tendenciaRival_ = 0.0f; modificadorReaccion_ = 1.0f;
     velActualX_ = 0.0f; velActualY_ = 0.0f;
     cooldownSalto_ = 0;
