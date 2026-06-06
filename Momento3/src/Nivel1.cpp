@@ -76,6 +76,7 @@ void Nivel1::inicializar() {
         jugador2_ = j2;
     } else {
         JugadorIA *ia = new JugadorIA("BenderIA", 3.5f, 680.0f);
+        ia->setSuelo(SUELO_Y);
         ia->setLimites(LIM_IZQ, LIM_DER);
         ia->setOtroJugador(jugador1_);
         jugador1_->setOtroJugador(ia);
