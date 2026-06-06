@@ -10,7 +10,7 @@
 #include <QGraphicsTextItem>
 
 Nivel1::Nivel1(ModoJuego modo, QObject *parent)
-    : Nivel(modo, parent), marcador_(nullptr)
+    : Nivel(modo, parent), marcador_(nullptr), temporizador_(nullptr)
 {}
 
 Nivel1::~Nivel1() {}
@@ -18,9 +18,9 @@ Nivel1::~Nivel1() {}
 void Nivel1::inicializar() {
     anchoEscena_ = 800;
     altoEscena_  = 450;
+    tiempoRestante_ = 60;   // 1 minuto
     setSceneRect(0, 0, anchoEscena_, altoEscena_);
 
-    // Fondo
     setBackgroundBrush(Qt::NoBrush);
     QPixmap fondo(":/assets/fondo_nivel1.png");
     QGraphicsPixmapItem *bg = addPixmap(
@@ -29,15 +29,18 @@ void Nivel1::inicializar() {
                      Qt::SmoothTransformation));
     bg->setZValue(-1);
 
-    // Suelo (Y donde pisan los jugadores)
     const float SUELO_Y = 370.0f;
-    addRect(0, SUELO_Y, 800, 15, QPen(Qt::NoPen), QBrush(QColor(40, 120, 40, 120)));
+    addRect(0, SUELO_Y, 800, 15, QPen(Qt::NoPen), QBrush(QColor(40, 120, 40, 80)));
 
-    // Jugador 1 — Fry
+    // Jugador 1 - Fry
     jugador1_ = new Jugador("Fry", 4.0f,
                             Qt::Key_A, Qt::Key_D, Qt::Key_W,
-                            QColor(100, 200, 255));
-    jugador1_->setSuelo(SUELO_Y);      // suelo dinamico
+                            QColor(100, 200, 255),
+                            ":/assets/fry.png",
+                            ":/assets/zapato.png",
+                            false);
+    jugador1_->setSuelo(SUELO_Y);
+    jugador1_->setTeclaPatada(Qt::Key_Space);
     addItem(jugador1_);
     jugador1_->setPosicion(150, SUELO_Y);
 
@@ -45,8 +48,12 @@ void Nivel1::inicializar() {
     if (modo_ == VS_HUMANO) {
         Jugador *j2 = new Jugador("Bender", 4.0f,
                                   Qt::Key_Left, Qt::Key_Right, Qt::Key_Up,
-                                  QColor(180, 180, 180));
+                                  QColor(180, 180, 180),
+                                  ":/assets/bender.png",
+                                  ":/assets/zapato.png",
+                                  true);
         j2->setSuelo(SUELO_Y);
+        j2->setTeclaPatada(Qt::Key_P);
         jugador2_ = j2;
     } else {
         JugadorIA *ia = new JugadorIA("BenderIA", 3.5f, 680.0f);
@@ -58,12 +65,12 @@ void Nivel1::inicializar() {
     // Balon
     balon_ = new Balon();
     balon_->setModoParabolico(true);
-    balon_->setBounds(anchoEscena_, 380);
+    balon_->setBounds(anchoEscena_, 370);
     addItem(balon_);
-    balon_->setPosicion(390, SUELO_Y - 20);
+    balon_->setPosicion(390, SUELO_Y - 30);
     balon_->lanzar(3.0f, -8.0f);
 
-    // Arcos laterales
+    // Arcos
     arcoIzq_ = new Arco(Arco::PLANET_EXPRESS);
     addItem(arcoIzq_);
     arcoIzq_->setPosicion(5, 270);
@@ -72,24 +79,37 @@ void Nivel1::inicializar() {
     addItem(arcoDer_);
     arcoDer_->setPosicion(775, 270);
 
-    // Marcador
-    marcador_ = addText("0  -  0", QFont("Arial", 20, QFont::Bold));
+    // --- HUD ---
+    QFont fontHUD("Arial", 18, QFont::Bold);
+
+    // Marcador centrado
+    marcador_ = addText("0  -  0", fontHUD);
     marcador_->setDefaultTextColor(Qt::white);
-    marcador_->setPos(340, 10);
+    marcador_->setPos(anchoEscena_/2 - marcador_->boundingRect().width()/2, 8);
     marcador_->setZValue(10);
 
-    // Conectar senal de gol para actualizar marcador
-    connect(this, &Nivel::golAnotado, this, &Nivel1::actualizarMarcador);
+    // Temporizador arriba a la derecha
+    temporizador_ = addText("60s", QFont("Arial", 14, QFont::Bold));
+    temporizador_->setDefaultTextColor(QColor(255, 220, 50));
+    temporizador_->setPos(anchoEscena_ - 60, 8);
+    temporizador_->setZValue(10);
+
+    // Conectar gol Y segundo al mismo slot
+    connect(this, &Nivel::golAnotado,   this, &Nivel1::actualizarHUD);
+    connect(timerSegundo_, &QTimer::timeout, this, [this]{ actualizarHUD(); });
 
     activo_ = true;
     timerFrame_->start(16);
     timerSegundo_->start(1000);
 }
 
-void Nivel1::actualizarMarcador(int) {
+void Nivel1::actualizarHUD(int) {
     if (marcador_)
         marcador_->setPlainText(
             QString("%1  -  %2").arg(goles_[0]).arg(goles_[1]));
+    if (temporizador_)
+        temporizador_->setPlainText(
+            QString("%1s").arg(tiempoRestante_));
 }
 
 void Nivel1::keyPressEvent(QKeyEvent *event) {

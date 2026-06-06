@@ -3,5 +3,8 @@
     <file alias="balon.png">assets/balon.png</file>
     <file alias="fondo_nivel1.png">assets/fondo_nivel1.png</file>
     <file alias="fondo_nivel2.png">assets/fondo_nivel2.png</file>
+    <file alias="fry.png">assets/fry.png</file>
+    <file alias="bender.png">assets/bender.png</file>
+    <file alias="zapato.png">assets/zapato.png</file>
 </qresource>
 </RCC>

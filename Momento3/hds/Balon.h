@@ -36,10 +36,13 @@ private:
     int   anchoCampo_;
     int   altoCampo_;
 
-    static constexpr float GRAVEDAD   = 0.4f;
-    static constexpr float ROZAMIENTO = 0.99f;
-    static constexpr float RADIO      = 22.0f;  // radio visual
-    static constexpr float RADIO_HIT  = 14.0f;  // radio de colision
+    static constexpr float GRAVEDAD         = 0.4f;
+    static constexpr float ROZAMIENTO_AIRE  = 0.999f;  // rozamiento en vuelo (casi nulo)
+    static constexpr float ROZAMIENTO_SUELO = 0.96f;   // frena en el suelo cada frame
+    static constexpr float ROZAMIENTO_REBOTE= 0.65f;   // pierde 35% de energia en cada rebote
+    static constexpr float ROZAMIENTO_PARED = 0.80f;   // pierde 20% al chocar pared/techo
+    static constexpr float RADIO            = 22.0f;
+    static constexpr float RADIO_HIT        = 14.0f;
 };
 
 #endif // BALON_H

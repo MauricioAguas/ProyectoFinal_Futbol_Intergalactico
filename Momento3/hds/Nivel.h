@@ -10,10 +10,6 @@
 #include "Balon.h"
 #include "Arco.h"
 
-/*
- Clase base abstracta para los niveles del juego.
- Hereda de QGraphicsScene: cada nivel ES la escena Qt.
-*/
 class Nivel : public QGraphicsScene {
     Q_OBJECT
 
@@ -39,15 +35,15 @@ protected slots:
     void tickTimer();
 
 protected:
-    Jugador   *jugador1_;    // siempre humano
-    Personaje *jugador2_;    // Jugador o JugadorIA segun modo
+    Jugador   *jugador1_;
+    Personaje *jugador2_;
     Balon     *balon_;
     Arco      *arcoIzq_;
     Arco      *arcoDer_;
 
     ModoJuego modo_;
     int       goles_[2];
-    int       tiempoRestante_;
+    int       tiempoRestante_;  // cada nivel lo fija en inicializar()
     bool      activo_;
 
     QTimer *timerFrame_;

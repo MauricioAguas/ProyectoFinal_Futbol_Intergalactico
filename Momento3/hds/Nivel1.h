@@ -18,10 +18,11 @@ protected:
     void keyReleaseEvent(QKeyEvent *event) override;
 
 private slots:
-    void actualizarMarcador(int jugador);
+    void actualizarHUD(int jugador = -1);
 
 private:
-    QGraphicsTextItem *marcador_;   // "0  -  0" en la parte superior
+    QGraphicsTextItem *marcador_;    // "0  -  0"
+    QGraphicsTextItem *temporizador_; // "60s"
 };
 
 #endif // NIVEL1_H

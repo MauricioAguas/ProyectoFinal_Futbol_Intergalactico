@@ -1,6 +1,7 @@
 #include "hds/Jugador.h"
 #include <QPainter>
 #include <QPainterPath>
+#include <QtMath>
 #include <cstdlib>
 
 Jugador::Jugador(const QString &nombre,
@@ -9,35 +10,43 @@ Jugador::Jugador(const QString &nombre,
                  Qt::Key teclaDer,
                  Qt::Key teclaSalto,
                  const QColor &color,
+                 const QString &spritePersonaje,
+                 const QString &spriteZapato,
+                 bool reflejar,
                  QGraphicsItem *parent)
     : Personaje(nombre, 3, velocidad, parent),
-      teclaIzq_(teclaIzq), teclaDer_(teclaDer), teclaSalto_(teclaSalto),
+      teclaIzq_(teclaIzq), teclaDer_(teclaDer),
+      teclaSalto_(teclaSalto), teclaPatada_(Qt::Key_unknown),
       presIzq_(false), presDer_(false), presSalto_(false),
+      anguloPatada_(0.0f), pateando_(false),
       vy_(0.0f), enSuelo_(true), suelo_(350.0f),
       velocidadBase_(velocidad), modificadorVelocidad_(1.0f),
-      enPanico_(false), color_(color)
+      enPanico_(false), color_(color), reflejar_(reflejar)
 {
+    if (!spritePersonaje.isEmpty()) pixPersonaje_.load(spritePersonaje);
+    if (!spriteZapato.isEmpty())    pixZapato_.load(spriteZapato);
+
     timerTurbo_  = new QTimer(this);
     timerPanico_ = new QTimer(this);
+    timerPatada_ = new QTimer(this);
     timerTurbo_->setSingleShot(true);
     timerPanico_->setSingleShot(true);
+    timerPatada_->setSingleShot(true);
     connect(timerTurbo_,  &QTimer::timeout, this, &Jugador::desactivarTurbo);
     connect(timerPanico_, &QTimer::timeout, this, &Jugador::desactivarPanico);
+    connect(timerPatada_, &QTimer::timeout, this, &Jugador::detenerPatada);
 }
 
 Jugador::~Jugador() {}
 
 QRectF Jugador::boundingRect() const {
-    // Incluye cabeza + cuerpo + texto del nombre
-    float totalAlto  = RADIO_CABEZA * 2 + ALTO_CUERPO + 14;
-    float totalAncho = RADIO_CABEZA * 2 + 10;
-    return QRectF(-totalAncho / 2, -RADIO_CABEZA * 2, totalAncho, totalAlto);
+    return QRectF(-ANCHO_SPRITE / 2 - 10, -ALTO_SPRITE - 10,
+                   ANCHO_SPRITE + 20, ALTO_SPRITE + ALTO_ZAPATO + 20);
 }
 
 QPainterPath Jugador::shape() const {
-    // Hitbox reducida: solo la cabeza (circulo) para colision mas precisa
     QPainterPath path;
-    path.addEllipse(QRectF(-RADIO_CABEZA * 0.7f, -RADIO_CABEZA * 2,
+    path.addEllipse(QRectF(-RADIO_CABEZA * 0.7f, -ALTO_SPRITE,
                             RADIO_CABEZA * 1.4f,  RADIO_CABEZA * 1.4f));
     return path;
 }
@@ -46,38 +55,55 @@ void Jugador::paint(QPainter *painter,
                     const QStyleOptionGraphicsItem *,
                     QWidget *)
 {
+    painter->setRenderHint(QPainter::SmoothPixmapTransform);
     painter->setRenderHint(QPainter::Antialiasing);
 
-    // Cuerpo
-    painter->setBrush(color_.darker(130));
-    painter->setPen(Qt::NoPen);
-    painter->drawRect(QRectF(-ANCHO_CUERPO / 2, 0, ANCHO_CUERPO, ALTO_CUERPO));
+    // ---- Sprite del personaje ----
+    if (!pixPersonaje_.isNull()) {
+        painter->save();
+        if (reflejar_) painter->scale(-1, 1);
+        painter->drawPixmap(
+            QRectF(-ANCHO_SPRITE / 2, -ALTO_SPRITE, ANCHO_SPRITE, ALTO_SPRITE),
+            pixPersonaje_, QRectF(pixPersonaje_.rect()));
+        painter->restore();
+    } else {
+        QColor cc = enPanico_ ? Qt::red
+                  : (modificadorVelocidad_ > 1.0f ? Qt::yellow : color_);
+        painter->setBrush(color_.darker(130)); painter->setPen(Qt::NoPen);
+        painter->drawRect(QRectF(-ANCHO_CUERPO/2, -ALTO_CUERPO, ANCHO_CUERPO, ALTO_CUERPO));
+        painter->setBrush(cc); painter->setPen(QPen(Qt::white, 1.5));
+        painter->drawEllipse(QRectF(-RADIO_CABEZA, -ALTO_SPRITE, RADIO_CABEZA*2, RADIO_CABEZA*2));
+        painter->setBrush(Qt::white); painter->setPen(Qt::NoPen);
+        painter->drawEllipse(QRectF(-10, -ALTO_SPRITE+8, 7, 7));
+        painter->drawEllipse(QRectF(  3, -ALTO_SPRITE+8, 7, 7));
+    }
 
-    // Cabeza
-    QColor colorCabeza = enPanico_ ? Qt::red
-                       : (modificadorVelocidad_ > 1.0f ? Qt::yellow : color_);
-    painter->setBrush(colorCabeza);
-    painter->setPen(QPen(Qt::white, 1.5));
-    painter->drawEllipse(QRectF(-RADIO_CABEZA, -RADIO_CABEZA * 2,
-                                RADIO_CABEZA * 2, RADIO_CABEZA * 2));
-
-    // Ojos
-    painter->setBrush(Qt::white);
-    painter->setPen(Qt::NoPen);
-    painter->drawEllipse(QRectF(-10, -RADIO_CABEZA * 1.6f, 7, 7));
-    painter->drawEllipse(QRectF(3,   -RADIO_CABEZA * 1.6f, 7, 7));
-
-    // Nombre
-    painter->setPen(Qt::white);
-    painter->setFont(QFont("Arial", 7));
-    painter->drawText(QRectF(-24, ALTO_CUERPO + 2, 48, 12),
-                      Qt::AlignCenter, nombre_);
+    // ---- Zapato (siempre visible, rota al patear) ----
+    if (!pixZapato_.isNull()) {
+        float pivotX = reflejar_ ? -ZAP_PIVOT_X : ZAP_PIVOT_X;
+        painter->save();
+        painter->translate(pivotX, ZAP_PIVOT_Y);
+        float angulo = reflejar_ ? -anguloPatada_ : anguloPatada_;
+        painter->rotate(angulo);
+        if (reflejar_) painter->scale(-1, 1);
+        painter->drawPixmap(
+            QRectF(0, -ALTO_ZAPATO, ANCHO_ZAPATO, ALTO_ZAPATO),
+            pixZapato_, QRectF(pixZapato_.rect()));
+        painter->restore();
+    }
+    // Nombre eliminado
 }
 
 void Jugador::keyPress(Qt::Key key) {
     if (key == teclaIzq_)  presIzq_  = true;
     if (key == teclaDer_)  presDer_  = true;
     if (key == teclaSalto_ && enSuelo_) { vy_ = IMPULSO_SALTO; enSuelo_ = false; }
+    if (teclaPatada_ != Qt::Key_unknown && key == teclaPatada_ && !pateando_) {
+        pateando_     = true;
+        anguloPatada_ = 60.0f;
+        timerPatada_->start(300);
+        update();
+    }
 }
 
 void Jugador::keyRelease(Qt::Key key) {
@@ -94,10 +120,16 @@ void Jugador::actualizar() {
     if (presDer_) dx += velReal;
     if (enPanico_) dx += (float)(rand() % 5 - 2);
 
-    // Gravedad
     if (!enSuelo_) vy_ += GRAVEDAD;
     float nuevoY = y_ + vy_;
     if (nuevoY >= suelo_) { nuevoY = suelo_; vy_ = 0.0f; enSuelo_ = true; }
+
+    if (!pateando_ && qAbs(anguloPatada_) > 0.5f) {
+        anguloPatada_ *= 0.75f;
+        update();
+    } else if (!pateando_) {
+        anguloPatada_ = 0.0f;
+    }
 
     mover(dx, nuevoY - y_);
     update();
@@ -113,23 +145,24 @@ void Jugador::contacto(Balon *balon) {
     if (presIzq_) impX = -velReal * 1.5f;
     if (presDer_) impX =  velReal * 1.5f;
     if (!presIzq_ && !presDer_) impX = (x_ < 400) ? 4.0f : -4.0f;
+    if (pateando_) impX *= 2.0f;
     float impY = enSuelo_ ? -6.0f : vy_ * 1.2f;
     balon->lanzar(impX, impY);
 
-    float v2 = balon->getVx() * balon->getVx() + balon->getVy() * balon->getVy();
+    float v2 = balon->getVx()*balon->getVx() + balon->getVy()*balon->getVy();
     if (v2 > 100.0f && !enPanico_) { enPanico_ = true; timerPanico_->start(3000); }
 }
 
-void Jugador::activarTurboCafeina() {
-    modificadorVelocidad_ = 2.0f; timerTurbo_->start(5000);
-}
-void Jugador::desactivarTurbo()  { modificadorVelocidad_ = 1.0f; }
-void Jugador::desactivarPanico() { enPanico_ = false; }
+void Jugador::activarTurboCafeina() { modificadorVelocidad_ = 2.0f; timerTurbo_->start(5000); }
+void Jugador::desactivarTurbo()     { modificadorVelocidad_ = 1.0f; }
+void Jugador::desactivarPanico()    { enPanico_ = false; }
+void Jugador::detenerPatada()       { pateando_ = false; update(); }
 
 void Jugador::reiniciar() {
     enSuelo_ = true; vy_ = 0.0f;
     modificadorVelocidad_ = 1.0f; enPanico_ = false;
+    pateando_ = false; anguloPatada_ = 0.0f;
     presIzq_ = presDer_ = presSalto_ = false;
-    timerTurbo_->stop(); timerPanico_->stop();
+    timerTurbo_->stop(); timerPanico_->stop(); timerPatada_->stop();
     activo_ = true; update();
 }
