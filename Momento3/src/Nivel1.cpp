@@ -29,10 +29,10 @@ void Nivel1::inicializar() {
                      Qt::SmoothTransformation));
     bg->setZValue(-1);
 
-    const float SUELO_Y = 370.0f;
+    // SUELO_Y: ajustar este valor si el balon sigue flotando (+10 = mas abajo)
+    const float SUELO_Y = 380.0f;
     addRect(0, SUELO_Y, 800, 15, QPen(Qt::NoPen), QBrush(QColor(40, 120, 40, 80)));
 
-    // Arcos
     arcoIzq_ = new Arco(Arco::PLANET_EXPRESS);
     addItem(arcoIzq_);
     arcoIzq_->setPosicion(35, 250);
@@ -41,13 +41,9 @@ void Nivel1::inicializar() {
     addItem(arcoDer_);
     arcoDer_->setPosicion(750, 250);
 
-    // Limites para jugadores: borde derecho arcoIzq + margen, borde izq arcoDer - margen
-    // arcoIzq en x=35, ANCHO=20 -> limite izq = 55 + mitad sprite(24) = 79
-    // arcoDer en x=750          -> limite der = 750 - mitad sprite(24) = 726
     const float LIM_IZQ = 35.0f + 20.0f + 24.0f;  // 79
     const float LIM_DER = 750.0f - 24.0f;           // 726
 
-    // Jugador 1 - Fry
     jugador1_ = new Jugador("Fry", 4.0f,
                             Qt::Key_A, Qt::Key_D, Qt::Key_W,
                             QColor(100, 200, 255),
@@ -60,7 +56,6 @@ void Nivel1::inicializar() {
     addItem(jugador1_);
     jugador1_->setPosicion(150, SUELO_Y);
 
-    // Jugador 2
     if (modo_ == VS_HUMANO) {
         Jugador *j2 = new Jugador("Bender", 4.0f,
                                   Qt::Key_Left, Qt::Key_Right, Qt::Key_Up,
@@ -85,17 +80,15 @@ void Nivel1::inicializar() {
     addItem(jugador2_);
     jugador2_->setPosicion(600, SUELO_Y);
 
-    // Balon
     balon_ = new Balon();
     balon_->setModoParabolico(true);
-    balon_->setBounds(anchoEscena_, 370);
+    // PISO_BALON: mismo valor que SUELO_Y para que coincida con el fondo
+    balon_->setBounds(anchoEscena_, 380);
     addItem(balon_);
     balon_->setPosicion(390, SUELO_Y - 30);
     balon_->lanzar(3.0f, -8.0f);
 
-    // --- HUD ---
     QFont fontHUD("Arial", 18, QFont::Bold);
-
     marcador_ = addText("0  -  0", fontHUD);
     marcador_->setDefaultTextColor(Qt::white);
     marcador_->setPos(anchoEscena_/2 - marcador_->boundingRect().width()/2, 8);
@@ -106,7 +99,7 @@ void Nivel1::inicializar() {
     temporizador_->setPos(anchoEscena_ - 60, 8);
     temporizador_->setZValue(10);
 
-    connect(this, &Nivel::golAnotado,   this, &Nivel1::actualizarHUD);
+    connect(this, &Nivel::golAnotado,        this, &Nivel1::actualizarHUD);
     connect(timerSegundo_, &QTimer::timeout, this, [this]{ actualizarHUD(); });
 
     activo_ = true;

@@ -31,11 +31,9 @@ public:
     void percibir(float balonX, float balonY,
                   float jugadorX, float jugadorY);
 
-    // dx,dy calculados externamente (modo hockey): mueve directo con qBound aplicado afuera
     void moverHockey(float dx, float dy, float limIzq, float limDer,
                      float limTop, float limBot);
 
-    // Devuelve la velocidad horizontal deseada segun objetivo (para que el nivel aplique qBound)
     float calcularDx();
     float calcularDy();
 
@@ -58,11 +56,14 @@ private:
     float suelo_;
     float velActualX_;
     float velActualY_;
+    int   cooldownSalto_;  // frames restantes antes de poder volver a saltar
 
-    static constexpr float GRAVEDAD      = 0.5f;
-    static constexpr float IMPULSO_SALTO = -12.0f;
-    // Salto solo si el balon esta al menos esta distancia vertical por encima
-    static constexpr float MIN_DIST_SALTO = 80.0f;
+    static constexpr float GRAVEDAD           = 0.5f;
+    static constexpr float IMPULSO_SALTO      = -12.0f;
+    // --- Ajusta estos valores para calibrar el salto de la IA ---
+    static constexpr float MIN_DIST_SALTO     = 80.0f;  // px verticales minimos para saltar
+    static constexpr float DIST_H_SALTO       = 120.0f; // px horizontales maximos para saltar
+    static constexpr int   FRAMES_COOLDOWN_SALTO = 90;  // ~1.5s a 60fps entre saltos
 
     static constexpr float ANCHO_SPRITE  = 48.0f;
     static constexpr float ALTO_SPRITE   = 64.0f;

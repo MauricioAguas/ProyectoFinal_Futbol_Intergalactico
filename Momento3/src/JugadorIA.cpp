@@ -16,6 +16,7 @@ JugadorIA::JugadorIA(const QString &nombre,
       xArco_(xArco),
       enSuelo_(true), vy_(0.0f), suelo_(400.0f),
       velActualX_(0.0f), velActualY_(0.0f),
+      cooldownSalto_(0),
       tendenciaRival_(0.0f), modificadorReaccion_(1.0f)
 {
     pixPersonaje_.load(":/assets/bender.png");
@@ -134,16 +135,27 @@ float JugadorIA::calcularDy() {
     return velActualY_;
 }
 
-// Modo Nivel1: fisica con gravedad y salto moderado
 void JugadorIA::actualizar() {
     if (!activo_) return;
 
     float dx = calcularDx();
 
-    // Salto solo si el balon esta significativamente por encima Y el jugador va a interceptarlo
-    if (balonVisible_ && (y_ - balonY_) > MIN_DIST_SALTO && enSuelo_) {
-        vy_ = IMPULSO_SALTO; enSuelo_ = false;
+    if (cooldownSalto_ > 0) cooldownSalto_--;
+
+    // Salto: solo si
+    //  1. El balon esta al menos MIN_DIST_SALTO px por encima
+    //  2. La IA esta cerca horizontalmente del balon (DIST_H_SALTO)
+    //  3. Paso el cooldown entre saltos
+    if (balonVisible_ && enSuelo_ && cooldownSalto_ == 0) {
+        float distV = y_ - balonY_;           // positivo = balon por encima
+        float distH = std::abs(x_ - balonX_); // distancia horizontal
+        if (distV > MIN_DIST_SALTO && distH < DIST_H_SALTO) {
+            vy_ = IMPULSO_SALTO;
+            enSuelo_ = false;
+            cooldownSalto_ = FRAMES_COOLDOWN_SALTO;  // ~1.5s a 60fps
+        }
     }
+
     if (!enSuelo_) vy_ += GRAVEDAD;
     float nuevoY = y_ + vy_;
     if (nuevoY >= suelo_) { nuevoY = suelo_; vy_ = 0.0f; enSuelo_ = true; }
@@ -152,7 +164,6 @@ void JugadorIA::actualizar() {
     update();
 }
 
-// Modo Nivel2: movimiento libre en 4 direcciones (sin gravedad), igual que jugador humano
 void JugadorIA::moverHockey(float dx, float dy,
                              float limIzq, float limDer,
                              float limTop, float limBot) {
@@ -192,5 +203,6 @@ void JugadorIA::reiniciar() {
     debeAtacar_ = false; objetivoX_ = xArco_; objetivoY_ = y_;
     tendenciaRival_ = 0.0f; modificadorReaccion_ = 1.0f;
     velActualX_ = 0.0f; velActualY_ = 0.0f;
+    cooldownSalto_ = 0;
     historialBalonX_.clear(); activo_ = true; update();
 }
