@@ -83,7 +83,7 @@ void Game::mostrarMenu() {
 
     for (auto *b : {btn1v1, btn1vIA, btn2v1, btn2vIA}) {
         b->setStyleSheet(btnStyle);
-        b->setFixedWidth(320);
+        b->setFixedWidth(240);
         vlay->addWidget(b, 0, Qt::AlignCenter);
         vlay->addSpacing(8);
     }

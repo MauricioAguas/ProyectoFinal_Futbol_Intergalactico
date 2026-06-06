@@ -73,11 +73,11 @@ void Nivel1::inicializar() {
     // Arcos
     arcoIzq_ = new Arco(Arco::PLANET_EXPRESS);
     addItem(arcoIzq_);
-    arcoIzq_->setPosicion(5, 270);
+    arcoIzq_->setPosicion(35, 250);
 
     arcoDer_ = new Arco(Arco::OMICRON_XI);
     addItem(arcoDer_);
-    arcoDer_->setPosicion(775, 270);
+    arcoDer_->setPosicion(750, 250);
 
     // --- HUD ---
     QFont fontHUD("Arial", 18, QFont::Bold);

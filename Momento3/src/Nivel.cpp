@@ -24,18 +24,13 @@ Nivel::Nivel(ModoJuego modo, QObject *parent)
 
 Nivel::~Nivel() {}
 
-// ---------------------------------------------------------------------------
-// tickJuego — llamado cada 16 ms (~60 fps)
-// ---------------------------------------------------------------------------
 void Nivel::tickJuego() {
     if (!activo_) return;
 
-    // Actualizar entidades
     if (jugador1_) jugador1_->actualizar();
     if (jugador2_) jugador2_->actualizar();
     if (balon_)    balon_->actualizar();
 
-    // Si es modo maquina, pasar info del mundo a la IA
     if (modo_ == VS_MAQUINA) {
         JugadorIA *ia = dynamic_cast<JugadorIA*>(jugador2_);
         if (ia && balon_ && jugador1_) {
@@ -48,9 +43,6 @@ void Nivel::tickJuego() {
     verificarGol();
 }
 
-// ---------------------------------------------------------------------------
-// tickTimer — descuenta un segundo cada 1000 ms
-// ---------------------------------------------------------------------------
 void Nivel::tickTimer() {
     if (tiempoRestante_ > 0) {
         tiempoRestante_--;
@@ -63,28 +55,24 @@ void Nivel::tickTimer() {
     }
 }
 
-// ---------------------------------------------------------------------------
-// verificarGol — comprueba si el balon entro en un arco
-// ---------------------------------------------------------------------------
 void Nivel::verificarGol() {
     if (!balon_) return;
     float bx = balon_->getX();
     float by = balon_->getY();
+    float vx = balon_->getVx();
+    float vy = balon_->getVy();
 
-    if (arcoIzq_ && arcoIzq_->detectarGol(bx, by)) {
-        goles_[1]++;          // gol en arco izquierdo: punto para J2
+    if (arcoIzq_ && arcoIzq_->detectarGol(bx, by, vx, vy)) {
+        goles_[1]++;
         emit golAnotado(1);
         balon_->reiniciar();
-    } else if (arcoDer_ && arcoDer_->detectarGol(bx, by)) {
-        goles_[0]++;          // gol en arco derecho: punto para J1
+    } else if (arcoDer_ && arcoDer_->detectarGol(bx, by, vx, vy)) {
+        goles_[0]++;
         emit golAnotado(0);
         balon_->reiniciar();
     }
 }
 
-// ---------------------------------------------------------------------------
-// verificarContactos — si el balon colisiona con un jugador llama contacto()
-// ---------------------------------------------------------------------------
 void Nivel::verificarContactos() {
     if (!balon_) return;
 
