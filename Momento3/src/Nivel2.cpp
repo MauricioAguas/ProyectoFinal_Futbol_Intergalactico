@@ -18,7 +18,9 @@ Nivel2::Nivel2(ModoJuego modo, QObject *parent)
     : Nivel(modo, parent), tiempoOsc_(0.0f),
       j1vx_(0), j1vy_(0), j2vx_(0), j2vy_(0),
       j1arr_(false), j1aba_(false), j1izq_(false), j1der_(false),
-      j2arr_(false), j2aba_(false), j2izq_(false), j2der_(false)
+      j2arr_(false), j2aba_(false), j2izq_(false), j2der_(false),
+      colisionJ1_(false), colisionJ2_(false),
+      ultimoToco_(0), combos_(0)
 {}
 
 Nivel2::~Nivel2() {}
@@ -41,14 +43,11 @@ void Nivel2::inicializar() {
     const float CAN_X  =  90.0f;
     const float CAN_Y  =  60.0f;
     const float CAN_W  = 620.0f;
-    const float CAN_H  = 480.0f;
+    const float CAN_H  = 460.0f;
 
     const float ARCO_A     =  10.0f;
     const float ARCO_ALTO  = 100.0f;
     const float ARCO_Y     = 230.0f;
-
-    // Arco izq: 5px dentro de la cancha para que el balon lo alcance antes de rebotar
-    // Arco der: 10px dentro de la cancha (antes del limite de rebote en pared derecha)
     const float ARCO_IZQ_X = CAN_X - ARCO_A + 5.0f;
     const float ARCO_DER_X = CAN_X + CAN_W  - 10.0f;
 
@@ -57,17 +56,9 @@ void Nivel2::inicializar() {
     spawnIzq_ = CAN_X + CAN_W * 0.25f;
     spawnDer_ = CAN_X + CAN_W * 0.75f;
 
-    addRect(CAN_X, CAN_Y, CAN_W, CAN_H,
-            QPen(QColor(255, 255, 0, 180), 3, Qt::DashLine),
-            QBrush(Qt::NoBrush))->setZValue(5);
-    addRect(ARCO_IZQ_X, ARCO_Y, ARCO_A, ARCO_ALTO,
-            QPen(QColor(255, 100, 0, 200), 2),
-            QBrush(QColor(255, 100, 0, 80)))->setZValue(5);
-    addRect(ARCO_DER_X, ARCO_Y, ARCO_A, ARCO_ALTO,
-            QPen(QColor(0, 200, 255, 200), 2),
-            QBrush(QColor(0, 200, 255, 80)))->setZValue(5);
-
     const float CENTRO_X = CAN_X + CAN_W / 2.0f;
+    const float LIM_IZQ  = canX_ + 20.0f;
+    const float LIM_DER  = canX_ + canW_ - 20.0f;
 
     jugador1_ = new Jugador("Fry", 4.0f,
                             Qt::Key_A, Qt::Key_D, Qt::Key_W,
@@ -86,6 +77,10 @@ void Nivel2::inicializar() {
         jugador2_ = j2;
     } else {
         JugadorIA *ia = new JugadorIA("BenderIA", 3.5f, ARCO_DER_X);
+        ia->setSuelo(99999.0f);
+        ia->setLimites(LIM_IZQ, LIM_DER);
+        ia->setOtroJugador(jugador1_);
+        jugador1_->setOtroJugador(ia);
         jugador2_ = ia;
     }
     addItem(jugador2_);
@@ -106,8 +101,6 @@ void Nivel2::inicializar() {
     addItem(arcoDer_);
     arcoDer_->setPosicion(ARCO_DER_X, ARCO_Y);
 
-    crearObstaculos();
-
     QFont fontHUD("Arial", 18, QFont::Bold);
     marcador_ = addText("0  -  0", fontHUD);
     marcador_->setDefaultTextColor(Qt::white);
@@ -120,7 +113,6 @@ void Nivel2::inicializar() {
     temporizador_->setZValue(10);
 
     connect(timerFrame_,   &QTimer::timeout, this, &Nivel2::tickHockey);
-    connect(timerFrame_,   &QTimer::timeout, this, &Nivel2::actualizarObstaculos);
     connect(this,          &Nivel::golAnotado,    this, &Nivel2::actualizarHUD);
     connect(timerSegundo_, &QTimer::timeout, this, [this]{ actualizarHUD(); });
 
@@ -138,9 +130,105 @@ void Nivel2::actualizarHUD(int) {
             QString("%1s").arg(tiempoRestante_));
 }
 
-void Nivel2::verificarGol() {
-    // Este metodo existe por el override pero la logica real esta en tickHockey
-    // para garantizar el orden: gol primero, rebote despues
+void Nivel2::verificarGol() {}
+
+bool Nivel2::cercaDelBalon(Personaje *jugador) {
+    if (!balon_ || !jugador) return false;
+    const float R_SUM    = 30.0f;
+    const float Y_OFFSET = 10.0f;
+    float ex = balon_->getX() - jugador->getX();
+    float ey = balon_->getY() - (jugador->getY() + Y_OFFSET);
+    return (ex*ex + ey*ey) <= R_SUM * R_SUM;
+}
+
+void Nivel2::colisionHockey(Personaje *jugador, float dvx, float dvy, int jugadorId) {
+    if (!balon_ || !jugador) return;
+
+    const float R_SUM    = 30.0f;
+    const float Y_OFFSET = 10.0f;
+
+    float jx = jugador->getX();
+    float jy = jugador->getY() + Y_OFFSET;
+    float bx = balon_->getX();
+    float by = balon_->getY();
+
+    float ex = bx - jx;
+    float ey = by - jy;
+    float dist = qSqrt(ex*ex + ey*ey);
+    if (dist < 0.1f) { ex = 1.0f; ey = 0.0f; dist = 1.0f; }
+
+    float nx = ex / dist;
+    float ny = ey / dist;
+
+    if (ny > 0.3f && dvy <= 0.0f) return;
+
+    balon_->setPosicion(jx + nx * (R_SUM + 1.0f),
+                        jy + ny * (R_SUM + 1.0f));
+
+    float vbx = balon_->getVx();
+    float vby = balon_->getVy();
+    float vb_n = vbx * nx + vby * ny;
+    float vj_n = dvx * nx + dvy * ny;
+
+    if (vb_n > 0.0f && vj_n <= 0.0f) return;
+
+    if (ultimoToco_ != 0 && ultimoToco_ != jugadorId)
+        combos_++;
+    else
+        combos_ = 0;
+    ultimoToco_ = jugadorId;
+
+    float comboBoost = qMin(1.0f + combos_ * 0.25f, 2.5f);
+    float abajoBoost = (dvy > 0.0f && ny > 0.0f) ? 1.6f : 1.0f;
+
+    float movLateral  = qAbs(dvx);
+    float movVertical = qAbs(dvy);
+    float lateralidad = (movLateral + movVertical > 0.0f)
+                        ? movLateral / (movLateral + movVertical) : 0.0f;
+    float nyAjustado  = ny * (1.0f - lateralidad * 0.6f);
+    float nxAjustado  = nx;
+    float lenAj = qSqrt(nxAjustado*nxAjustado + nyAjustado*nyAjustado);
+    if (lenAj > 0.01f) { nxAjustado /= lenAj; nyAjustado /= lenAj; }
+
+    float impulso = (-vb_n + vj_n * 1.5f) * comboBoost * abajoBoost;
+    if (impulso < 5.0f) impulso = 5.0f;
+
+    float nvbx = vbx + impulso * nxAjustado;
+    float nvby = vby + impulso * nyAjustado;
+
+    float velMax = qMin(14.0f + combos_ * 1.5f, 22.0f);
+    float speed  = qSqrt(nvbx*nvbx + nvby*nvby);
+    if (speed > velMax) { nvbx = nvbx/speed*velMax; nvby = nvby/speed*velMax; }
+
+    balon_->lanzar(nvbx, nvby);
+}
+
+void Nivel2::resolverBodyblock() {
+    if (!jugador1_ || !jugador2_) return;
+    const float R_JUG = 20.0f;
+    const float R2    = R_JUG * 2.0f;
+
+    float ax = jugador1_->getX();
+    float ay = jugador1_->getY();
+    float bx = jugador2_->getX();
+    float by = jugador2_->getY();
+
+    float ex = bx - ax;
+    float ey = by - ay;
+    float dist = qSqrt(ex*ex + ey*ey);
+    if (dist >= R2 || dist < 0.1f) return;
+
+    float nx = ex / dist;
+    float ny = ey / dist;
+    float overlap = (R2 - dist) / 2.0f;
+
+    float newAx = qBound(canX_ + 20.0f, ax - nx * overlap, canX_ + canW_ - 20.0f);
+    float newAy = qBound(canY_ + 20.0f, ay - ny * overlap, canY_ + canH_ + 40.0f);
+    float newBx = qBound(canX_ + 20.0f, bx + nx * overlap, canX_ + canW_ - 20.0f);
+    float newBy = qBound(canY_ + 20.0f, by + ny * overlap, canY_ + canH_ + 40.0f);
+
+    jugador1_->mover(newAx - ax, newAy - ay);
+    jugador2_->mover(newBx - bx, newBy - by);
 }
 
 void Nivel2::tickHockey() {
@@ -148,8 +236,8 @@ void Nivel2::tickHockey() {
 
     const float VEL       = 4.0f;
     const float MAR_X     = 20.0f;
-    const float MAR_Y_TOP = 10.0f;
-    const float MAR_Y_BOT = 10.0f;
+    const float MAR_Y_TOP = 20.0f;
+    const float MAR_Y_BOT = 40.0f;
 
     float dx1 = 0, dy1 = 0;
     if (j1izq_) dx1 -= VEL;
@@ -160,8 +248,8 @@ void Nivel2::tickHockey() {
     float ny1 = qBound(canY_ + MAR_Y_TOP, jugador1_->getY() + dy1, canY_ + canH_ + MAR_Y_BOT);
     jugador1_->mover(nx1 - jugador1_->getX(), ny1 - jugador1_->getY());
 
+    float dx2 = 0, dy2 = 0;
     if (modo_ == VS_HUMANO) {
-        float dx2 = 0, dy2 = 0;
         if (j2izq_) dx2 -= VEL;
         if (j2der_) dx2 += VEL;
         if (j2arr_) dy2 -= VEL;
@@ -169,75 +257,81 @@ void Nivel2::tickHockey() {
         float nx2 = qBound(canX_ + MAR_X,     jugador2_->getX() + dx2, canX_ + canW_ - MAR_X);
         float ny2 = qBound(canY_ + MAR_Y_TOP, jugador2_->getY() + dy2, canY_ + canH_ + MAR_Y_BOT);
         jugador2_->mover(nx2 - jugador2_->getX(), ny2 - jugador2_->getY());
+    } else {
+        JugadorIA *ia = dynamic_cast<JugadorIA*>(jugador2_);
+        if (ia && balon_) {
+            ia->percibir(balon_->getX(), balon_->getY(),
+                         jugador1_->getX(), jugador1_->getY());
+            // Calcular velocidad deseada igual que el jugador humano
+            dx2 = ia->calcularDx();
+            dy2 = ia->calcularDy();
+            // Aplicar qBound igual que al jugador humano
+            ia->moverHockey(dx2, dy2,
+                            canX_ + MAR_X,     canX_ + canW_ - MAR_X,
+                            canY_ + MAR_Y_TOP, canY_ + canH_ + MAR_Y_BOT);
+            // Actualizar dx2/dy2 real para colision de balon
+            dx2 = ia->getX() - jugador2_->getX();
+            dy2 = ia->getY() - jugador2_->getY();
+        }
     }
 
+    resolverBodyblock();
+
     if (!balon_) return;
+
+    bool tocaJ1 = cercaDelBalon(jugador1_);
+    bool tocaJ2 = cercaDelBalon(jugador2_);
+
+    if (tocaJ1 && !colisionJ1_) {
+        colisionHockey(jugador1_, dx1, dy1, 1);
+        colisionJ1_ = true;
+    } else if (!tocaJ1) {
+        colisionJ1_ = false;
+    }
+
+    if (tocaJ2 && !colisionJ2_) {
+        colisionHockey(jugador2_, dx2, dy2, 2);
+        colisionJ2_ = true;
+    } else if (!tocaJ2) {
+        colisionJ2_ = false;
+    }
 
     float bx = balon_->getX();
     float by = balon_->getY();
     float vx = balon_->getVx();
     float vy = balon_->getVy();
 
-    // 1. Verificar gol PRIMERO
     bool fueGol = false;
     if (arcoIzq_ && arcoIzq_->detectarGol(bx, by, vx, vy)) {
-        goles_[1]++;
-        emit golAnotado(1);
+        goles_[1]++; emit golAnotado(1);
         balon_->setPosicion(spawnIzq_, centroY_);
         balon_->lanzar(4.0f, 0.0f);
+        colisionJ1_ = colisionJ2_ = false;
+        ultimoToco_ = 0; combos_ = 0;
         fueGol = true;
     } else if (arcoDer_ && arcoDer_->detectarGol(bx, by, vx, vy)) {
-        goles_[0]++;
-        emit golAnotado(0);
+        goles_[0]++; emit golAnotado(0);
         balon_->setPosicion(spawnDer_, centroY_);
         balon_->lanzar(-4.0f, 0.0f);
+        colisionJ1_ = colisionJ2_ = false;
+        ultimoToco_ = 0; combos_ = 0;
         fueGol = true;
     }
 
-    // 2. Rebotar en paredes SOLO si no fue gol
     if (!fueGol) {
-        bx = balon_->getX();
-        by = balon_->getY();
-        vx = balon_->getVx();
-        vy = balon_->getVy();
+        bx = balon_->getX(); by = balon_->getY();
+        vx = balon_->getVx(); vy = balon_->getVy();
 
-        // Pared izquierda (rebota normal)
         if (bx <= canX_ + 8 && vx < 0)         { balon_->aplicarRebote(true);  balon_->setPosicion(canX_ + 9, by); }
-        // Pared derecha: rebota solo si NO hay arco ahi (el arco ya esta 10px adentro)
         if (bx >= canX_ + canW_ - 8 && vx > 0) { balon_->aplicarRebote(true);  balon_->setPosicion(canX_ + canW_ - 9, by); }
-        // Paredes superior e inferior
         if (by <= canY_ + 8 && vy < 0)          { balon_->aplicarRebote(false); balon_->setPosicion(bx, canY_ + 9); }
         if (by >= canY_ + canH_ - 8 && vy > 0)  { balon_->aplicarRebote(false); balon_->setPosicion(bx, canY_ + canH_ - 9); }
 
         float speed = qSqrt(vx*vx + vy*vy);
         if (speed < 2.0f && speed > 0.0f)
-            balon_->lanzar(balon_->getVx() * (2.0f/speed), balon_->getVy() * (2.0f/speed));
+            balon_->lanzar(balon_->getVx()*(2.0f/speed), balon_->getVy()*(2.0f/speed));
         else if (speed < 0.1f)
             balon_->lanzar(4.0f, 3.0f);
-    }
-}
-
-void Nivel2::crearObstaculos() {
-    auto agregar = [&](float xb, float yb, float amp, float frec, float fase) {
-        QGraphicsEllipseItem *item = addEllipse(-15, -15, 30, 30,
-                                                QPen(QColor(255,200,0)),
-                                                QBrush(QColor(200,100,0,180)));
-        item->setPos(xb, yb);
-        obstaculos_.append({item, xb, yb, amp, frec, fase});
-    };
-    agregar(300, 250, 60.0f, 0.8f, 0.0f);
-    agregar(500, 380, 50.0f, 1.0f, 1.57f);
-    agregar(400, 310, 40.0f, 0.6f, 3.14f);
-}
-
-void Nivel2::actualizarObstaculos() {
-    tiempoOsc_ += 0.016f;
-    for (auto &obs : obstaculos_) {
-        float nuevaX = obs.xBase + obs.amplitud *
-                       std::sin(2.0f * M_PI * obs.frecuencia * tiempoOsc_ + obs.fase);
-        obs.item->setPos(nuevaX, obs.yBase);
-        if (balon_ && balon_->collidesWithItem(obs.item))
-            balon_->aplicarRebote(true);
     }
 }
 

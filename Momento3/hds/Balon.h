@@ -37,12 +37,12 @@ private:
     int   altoCampo_;
 
     static constexpr float GRAVEDAD         = 0.4f;
-    static constexpr float ROZAMIENTO_AIRE  = 0.999f;  // rozamiento en vuelo (casi nulo)
-    static constexpr float ROZAMIENTO_SUELO = 0.96f;   // frena en el suelo cada frame
-    static constexpr float ROZAMIENTO_REBOTE= 0.65f;   // pierde 35% de energia en cada rebote
-    static constexpr float ROZAMIENTO_PARED = 0.80f;   // pierde 20% al chocar pared/techo
-    static constexpr float RADIO            = 22.0f;
-    static constexpr float RADIO_HIT        = 14.0f;
+    static constexpr float ROZAMIENTO_AIRE  = 0.999f;
+    static constexpr float ROZAMIENTO_SUELO = 0.96f;
+    static constexpr float ROZAMIENTO_REBOTE= 0.65f;
+    static constexpr float ROZAMIENTO_PARED = 0.80f;
+    static constexpr float RADIO            = 27.0f;  // +5px visual
+    static constexpr float RADIO_HIT        = 19.0f;  // +5px hitbox Qt
 };
 
 #endif // BALON_H

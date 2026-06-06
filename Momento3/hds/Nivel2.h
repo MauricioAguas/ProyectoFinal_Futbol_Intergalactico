@@ -20,23 +20,12 @@ public:
 protected:
     void keyPressEvent(QKeyEvent *event)   override;
     void keyReleaseEvent(QKeyEvent *event) override;
-    void verificarGol() override;  // respawn en lado del equipo que recibio gol
+    void verificarGol() override;
 
 private slots:
     void actualizarHUD(int gol = -1);
 
 private:
-    struct Obstaculo {
-        QGraphicsEllipseItem *item;
-        float xBase;
-        float yBase;
-        float amplitud;
-        float frecuencia;
-        float fase;
-    };
-    QList<Obstaculo> obstaculos_;
-    float tiempoOsc_;
-
     float canX_ = 90.0f;
     float canY_ = 60.0f;
     float canW_ = 620.0f;
@@ -49,12 +38,20 @@ private:
     bool j1arr_, j1aba_, j1izq_, j1der_;
     bool j2arr_, j2aba_, j2izq_, j2der_;
 
+    bool colisionJ1_;
+    bool colisionJ2_;
+    int  ultimoToco_;
+    int  combos_;
+
+    float tiempoOsc_;
+
     QGraphicsTextItem *marcador_     = nullptr;
     QGraphicsTextItem *temporizador_ = nullptr;
 
-    void crearObstaculos();
-    void actualizarObstaculos();
     void tickHockey();
+    void resolverBodyblock();
+    bool cercaDelBalon(Personaje *jugador);
+    void colisionHockey(Personaje *jugador, float dvx, float dvy, int jugadorId);
 };
 
 #endif // NIVEL2_H
