@@ -42,6 +42,8 @@ public:
     void setSuelo(float y)     { suelo_ = y; }
     void activarTurboCafeina();
     void setTeclaPatada(Qt::Key k) { teclaPatada_ = k; }
+    void setLimites(float xMin, float xMax) { xMin_ = xMin; xMax_ = xMax; }
+    void setOtroJugador(Personaje *otro)    { otroJugador_ = otro; }
 
 private slots:
     void desactivarTurbo();
@@ -52,12 +54,17 @@ private:
     Qt::Key teclaIzq_, teclaDer_, teclaSalto_, teclaPatada_;
     bool    presIzq_, presDer_, presSalto_;
 
-    float anguloPatada_;  // 0 = reposo, +60 = patada hacia arriba
+    float anguloPatada_;
     bool  pateando_;
 
     float vy_;
     bool  enSuelo_;
     float suelo_;
+
+    float xMin_  =    0.0f;
+    float xMax_  = 800.0f;
+
+    Personaje *otroJugador_ = nullptr;
 
     static constexpr float GRAVEDAD      = 0.5f;
     static constexpr float IMPULSO_SALTO = -12.0f;

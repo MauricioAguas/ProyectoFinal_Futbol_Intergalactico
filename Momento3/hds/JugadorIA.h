@@ -7,11 +7,6 @@
 #include <QList>
 #include <QColor>
 
-/*
- JugadorIA — agente autonomo (Bender).
- Percepcion, razonamiento, accion y aprendizaje.
- Se dibuja como cabezon gris metalico.
-*/
 class JugadorIA : public Personaje {
     Q_OBJECT
 
@@ -35,6 +30,9 @@ public:
     void percibir(float balonX, float balonY,
                   float jugadorX, float jugadorY);
 
+    void setLimites(float xMin, float xMax) { xMin_ = xMin; xMax_ = xMax; }
+    void setOtroJugador(Personaje *otro)    { otroJugador_ = otro; }
+
 private:
     float balonX_, balonY_, rivalX_, rivalY_;
     bool  balonVisible_;
@@ -53,6 +51,11 @@ private:
     static constexpr float RADIO_CABEZA  = 24.0f;
     static constexpr float ANCHO_CUERPO  = 18.0f;
     static constexpr float ALTO_CUERPO   = 20.0f;
+
+    float xMin_ =    0.0f;
+    float xMax_ = 800.0f;
+
+    Personaje *otroJugador_ = nullptr;
 
     QList<float> historialBalonX_;
     float        tendenciaRival_;

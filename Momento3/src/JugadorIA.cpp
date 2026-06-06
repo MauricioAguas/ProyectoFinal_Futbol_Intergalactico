@@ -23,35 +23,32 @@ JugadorIA::JugadorIA(const QString &nombre,
 JugadorIA::~JugadorIA() {}
 
 QRectF JugadorIA::boundingRect() const {
-    float totalAlto  = RADIO_CABEZA * 2 + ALTO_CUERPO + 16; // +16 para el texto
+    float totalAlto  = RADIO_CABEZA * 2 + ALTO_CUERPO + 16;
     float totalAncho = qMax(RADIO_CABEZA * 2, ANCHO_CUERPO) + 10;
     return QRectF(-totalAncho / 2, -RADIO_CABEZA * 2, totalAncho, totalAlto);
 }
+
 void JugadorIA::paint(QPainter *painter,
                       const QStyleOptionGraphicsItem *,
                       QWidget *)
 {
     painter->setRenderHint(QPainter::Antialiasing);
 
-    // Cuerpo gris metalico
     painter->setBrush(QColor(120, 120, 120));
     painter->setPen(Qt::NoPen);
     painter->drawRect(QRectF(-ANCHO_CUERPO / 2, 0, ANCHO_CUERPO, ALTO_CUERPO));
 
-    // Cabeza metalica
     QColor colorCabeza = balonVisible_ ? QColor(200, 200, 80) : QColor(180, 180, 180);
     painter->setBrush(colorCabeza);
     painter->setPen(QPen(Qt::white, 1.5));
     painter->drawEllipse(QRectF(-RADIO_CABEZA, -RADIO_CABEZA * 2,
                                 RADIO_CABEZA * 2, RADIO_CABEZA * 2));
 
-    // Ojos (rectangulares — estilo robot)
     painter->setBrush(QColor(255, 255, 100));
     painter->setPen(Qt::NoPen);
     painter->drawRect(QRectF(-11, -RADIO_CABEZA * 1.6f, 8, 5));
     painter->drawRect(QRectF(3,   -RADIO_CABEZA * 1.6f, 8, 5));
 
-    // Nombre
     painter->setPen(Qt::white);
     painter->setFont(QFont("Arial", 7));
     painter->drawText(QRectF(-24, ALTO_CUERPO + 2, 48, 12),
@@ -72,6 +69,9 @@ void JugadorIA::razonar() {
     float distBalonArco = std::abs(balonX_ - xArco_);
     debeAtacar_ = (distBalonArco < 300.0f);
     objetivoX_ = debeAtacar_ ? balonX_ + tendenciaRival_ * 20.0f : xArco_;
+    // Respetar limites
+    if (objetivoX_ < xMin_) objetivoX_ = xMin_;
+    if (objetivoX_ > xMax_) objetivoX_ = xMax_;
 }
 
 void JugadorIA::aprender() {
@@ -110,7 +110,26 @@ void JugadorIA::actualizar() {
 }
 
 void JugadorIA::mover(float dx, float dy) {
-    x_ += dx; y_ += dy; setPos(x_, y_);
+    x_ += dx;
+    y_ += dy;
+
+    // Limites de los arcos (solo en suelo)
+    if (enSuelo_) {
+        if (x_ < xMin_) x_ = xMin_;
+        if (x_ > xMax_) x_ = xMax_;
+
+        // Colision horizontal con el otro jugador (solo en suelo)
+        if (otroJugador_) {
+            float otroX = otroJugador_->getX();
+            float mitad = ANCHO_CUERPO / 2.0f + 10.0f;
+            if (x_ < otroX && x_ + mitad > otroX - mitad)
+                x_ = otroX - mitad * 2.0f;
+            else if (x_ > otroX && x_ - mitad < otroX + mitad)
+                x_ = otroX + mitad * 2.0f;
+        }
+    }
+
+    setPos(x_, y_);
 }
 
 void JugadorIA::contacto(Balon *balon) {

@@ -46,22 +46,15 @@ QRectF Jugador::boundingRect() const {
 
 QPainterPath Jugador::shape() const {
     QPainterPath path;
-
-    // Hitbox de la cabeza/cuerpo (siempre activo)
     path.addEllipse(QRectF(-RADIO_CABEZA * 0.7f, -ALTO_SPRITE,
                             RADIO_CABEZA * 1.4f,  RADIO_CABEZA * 1.4f));
-
-    // Hitbox extendida del zapato: activa al saltar y patear
     if (!enSuelo_ && pateando_) {
-        // En el aire pateando: zona amplia hacia abajo
         path.addRect(QRectF(-ANCHO_ZAPATO / 2, ZAP_PIVOT_Y - ALTO_ZAPATO,
                              ANCHO_ZAPATO,      ALTO_ZAPATO + 18.0f));
     } else if (!enSuelo_) {
-        // En el aire sin patear: zona normal del zapato
         path.addRect(QRectF(-ANCHO_ZAPATO / 2, ZAP_PIVOT_Y - ALTO_ZAPATO,
                              ANCHO_ZAPATO,      ALTO_ZAPATO));
     }
-
     return path;
 }
 
@@ -72,7 +65,6 @@ void Jugador::paint(QPainter *painter,
     painter->setRenderHint(QPainter::SmoothPixmapTransform);
     painter->setRenderHint(QPainter::Antialiasing);
 
-    // ---- Sprite del personaje ----
     if (!pixPersonaje_.isNull()) {
         painter->save();
         if (reflejar_) painter->scale(-1, 1);
@@ -92,7 +84,6 @@ void Jugador::paint(QPainter *painter,
         painter->drawEllipse(QRectF(  3, -ALTO_SPRITE+8, 7, 7));
     }
 
-    // ---- Zapato (siempre visible, rota al patear) ----
     if (!pixZapato_.isNull()) {
         float pivotX = reflejar_ ? -ZAP_PIVOT_X : ZAP_PIVOT_X;
         painter->save();
@@ -149,7 +140,28 @@ void Jugador::actualizar() {
 }
 
 void Jugador::mover(float dx, float dy) {
-    x_ += dx; y_ += dy; setPos(x_, y_);
+    x_ += dx;
+    y_ += dy;
+
+    // Limites de los arcos (solo en el suelo para no bloquear saltos)
+    if (enSuelo_) {
+        if (x_ < xMin_) x_ = xMin_;
+        if (x_ > xMax_) x_ = xMax_;
+
+        // Colision horizontal con el otro jugador (solo en suelo)
+        if (otroJugador_) {
+            float otroX = otroJugador_->getX();
+            float mitad = ANCHO_SPRITE / 2.0f;
+            // Si este jugador esta a la izquierda del otro
+            if (x_ < otroX && x_ + mitad > otroX - mitad)
+                x_ = otroX - ANCHO_SPRITE;
+            // Si este jugador esta a la derecha del otro
+            else if (x_ > otroX && x_ - mitad < otroX + mitad)
+                x_ = otroX + ANCHO_SPRITE;
+        }
+    }
+
+    setPos(x_, y_);
 }
 
 void Jugador::contacto(Balon *balon) {
