@@ -15,12 +15,15 @@
 #include <cmath>
 
 Nivel2::Nivel2(ModoJuego modo, QObject *parent)
-    : Nivel(modo, parent), tiempoOsc_(0.0f),
+    : Nivel(modo, parent),
+      tiempoOsc_(0.0f),
       j1vx_(0), j1vy_(0), j2vx_(0), j2vy_(0),
       j1arr_(false), j1aba_(false), j1izq_(false), j1der_(false),
       j2arr_(false), j2aba_(false), j2izq_(false), j2der_(false),
       colisionJ1_(false), colisionJ2_(false),
-      ultimoToco_(0), combos_(0)
+      ultimoToco_(0), combos_(0),
+      canX_(90.0f), canY_(60.0f), canW_(620.0f), canH_(460.0f),
+      centroY_(290.0f), spawnIzq_(220.0f), spawnDer_(555.0f)
 {}
 
 Nivel2::~Nivel2() {}
@@ -79,7 +82,7 @@ void Nivel2::inicializar() {
         ia->setSuelo(99999.0f);
         ia->setLimites(LIM_IZQ, LIM_DER);
         ia->setOtroJugador(jugador1_);
-        ia->setModoHockey(true);   // desactiva gravedad, salto y zapato
+        ia->setModoHockey(true);
         jugador1_->setOtroJugador(ia);
         jugador2_ = ia;
     }
@@ -112,6 +115,8 @@ void Nivel2::inicializar() {
     temporizador_->setPos(anchoEscena_-60, 8);
     temporizador_->setZValue(10);
 
+    // Desconectar tickJuego de la base y conectar tickHockey
+    desconectarTickJuego();
     connect(timerFrame_,   &QTimer::timeout, this, &Nivel2::tickHockey);
     connect(this, &Nivel::golAnotado, this, &Nivel2::actualizarHUD);
     connect(timerSegundo_, &QTimer::timeout, this, [this]{ actualizarHUD(); });
@@ -228,6 +233,9 @@ void Nivel2::tickHockey() {
     resolverBodyblock();
     if (!balon_) return;
 
+    // Mover el balon cada frame (aplica vx_/vy_ internamente)
+    balon_->actualizar();
+
     bool tocaJ1=cercaDelBalon(jugador1_);
     bool tocaJ2=cercaDelBalon(jugador2_);
     if (tocaJ1&&!colisionJ1_){colisionHockey(jugador1_,dx1,dy1,1);colisionJ1_=true;}
@@ -270,7 +278,7 @@ void Nivel2::keyPressEvent(QKeyEvent *event) {
         case Qt::Key_Down:  j2aba_=true; break;
         case Qt::Key_Left:  j2izq_=true; break;
         case Qt::Key_Right: j2der_=true; break;
-        default: break;
+        default: Nivel::keyPressEvent(event); break;
     }
 }
 
@@ -284,6 +292,6 @@ void Nivel2::keyReleaseEvent(QKeyEvent *event) {
         case Qt::Key_Down:  j2aba_=false; break;
         case Qt::Key_Left:  j2izq_=false; break;
         case Qt::Key_Right: j2der_=false; break;
-        default: break;
+        default: QGraphicsScene::keyReleaseEvent(event); break;
     }
 }

@@ -42,7 +42,7 @@ void JugadorIA::paint(QPainter *painter,
     painter->setRenderHint(QPainter::SmoothPixmapTransform);
     painter->setRenderHint(QPainter::Antialiasing);
 
-    // Sprite del personaje — reflejado horizontalmente (igual que Jugador con reflejar_=true)
+    // Sprite del personaje — reflejado igual que Jugador con reflejar_=true
     if (!pixPersonaje_.isNull()) {
         painter->save();
         painter->scale(-1, 1);
@@ -59,14 +59,17 @@ void JugadorIA::paint(QPainter *painter,
         painter->drawEllipse(QRectF(-12,-44,24,24));
     }
 
-    // Zapato solo en Nivel1 — pivot identico a Jugador con reflejar_=true
+    // Zapato solo en Nivel1 — pivot identico a Jugador.h con reflejar_=true:
+    // pivotX = reflejar_ ? -ZAP_PIVOT_X : ZAP_PIVOT_X  => -(- 4.0) = +4.0
+    // pero Jugador usa: painter->translate(pivotX, ZAP_PIVOT_Y) luego scale(-1,1)
     if (!modoHockey_ && !pixZapato_.isNull()) {
-        // reflejar_=true => pivotX = -ZAP_PIVOT_X
-        float pivotX = -ZAP_PIVOT_X;
+        // ZAP_PIVOT_X en Jugador.h = -4.0f  => pivotX para reflejado = -(-4.0) = 4.0
+        const float pivotX =  4.0f;   // -ZAP_PIVOT_X_JUGADOR  (-(-4.0f))
+        const float pivotY =  2.0f;   // ZAP_PIVOT_Y de Jugador
         painter->save();
-        painter->translate(pivotX, ZAP_PIVOT_Y);
-        painter->rotate(-0.0f);   // angulo siempre 0 para IA (sin patada)
-        painter->scale(-1, 1);    // reflejo igual que Jugador reflejado
+        painter->translate(pivotX, pivotY);
+        painter->rotate(0.0f);
+        painter->scale(-1, 1);
         painter->drawPixmap(
             QRectF(0, -ALTO_ZAPATO, ANCHO_ZAPATO, ALTO_ZAPATO),
             pixZapato_, QRectF(pixZapato_.rect()));

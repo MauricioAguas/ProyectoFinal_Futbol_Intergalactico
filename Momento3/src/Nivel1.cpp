@@ -29,7 +29,6 @@ void Nivel1::inicializar() {
                      Qt::SmoothTransformation));
     bg->setZValue(-1);
 
-    // SUELO_Y: ajustar este valor si el balon sigue flotando (+10 = mas abajo)
     const float SUELO_Y = 380.0f;
     addRect(0, SUELO_Y, 800, 15, QPen(Qt::NoPen), QBrush(QColor(40, 120, 40, 80)));
 
@@ -41,8 +40,8 @@ void Nivel1::inicializar() {
     addItem(arcoDer_);
     arcoDer_->setPosicion(750, 250);
 
-    const float LIM_IZQ = 35.0f + 20.0f + 24.0f;  // 79
-    const float LIM_DER = 750.0f - 24.0f;           // 726
+    const float LIM_IZQ = 35.0f + 20.0f + 24.0f;
+    const float LIM_DER = 750.0f - 24.0f;
 
     jugador1_ = new Jugador("Fry", 4.0f,
                             Qt::Key_A, Qt::Key_D, Qt::Key_W,
@@ -82,7 +81,6 @@ void Nivel1::inicializar() {
 
     balon_ = new Balon();
     balon_->setModoParabolico(true);
-    // PISO_BALON: mismo valor que SUELO_Y para que coincida con el fondo
     balon_->setBounds(anchoEscena_, 380);
     addItem(balon_);
     balon_->setPosicion(390, SUELO_Y - 30);
@@ -117,11 +115,14 @@ void Nivel1::actualizarHUD(int) {
 }
 
 void Nivel1::keyPressEvent(QKeyEvent *event) {
-    if (jugador1_) jugador1_->keyPress(static_cast<Qt::Key>(event->key()));
+    Qt::Key key = static_cast<Qt::Key>(event->key());
+    if (jugador1_) jugador1_->keyPress(key);
     if (modo_ == VS_HUMANO) {
         Jugador *j2 = dynamic_cast<Jugador*>(jugador2_);
-        if (j2) j2->keyPress(static_cast<Qt::Key>(event->key()));
+        if (j2) j2->keyPress(key);
     }
+    // ESC y cualquier otra tecla no consumida pasan a la clase base
+    Nivel::keyPressEvent(event);
 }
 
 void Nivel1::keyReleaseEvent(QKeyEvent *event) {
@@ -130,4 +131,5 @@ void Nivel1::keyReleaseEvent(QKeyEvent *event) {
         Jugador *j2 = dynamic_cast<Jugador*>(jugador2_);
         if (j2) j2->keyRelease(static_cast<Qt::Key>(event->key()));
     }
+    QGraphicsScene::keyReleaseEvent(event);
 }

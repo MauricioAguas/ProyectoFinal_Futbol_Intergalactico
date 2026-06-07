@@ -25,6 +25,10 @@ Nivel::Nivel(ModoJuego modo, QObject *parent)
 
 Nivel::~Nivel() {}
 
+void Nivel::desconectarTickJuego() {
+    disconnect(timerFrame_, &QTimer::timeout, this, &Nivel::tickJuego);
+}
+
 void Nivel::pausa() {
     if (!activo_ || pausado_) return;
     pausado_ = true;
@@ -77,8 +81,7 @@ void Nivel::tickTimer() {
         timerFrame_->stop();
         timerSegundo_->stop();
 
-        // Determinar ganador
-        int ganador = -1; // empate
+        int ganador = -1;
         if (goles_[0] > goles_[1])      ganador = 0;
         else if (goles_[1] > goles_[0]) ganador = 1;
 

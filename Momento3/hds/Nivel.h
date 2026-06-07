@@ -31,12 +31,14 @@ public:
     void pausa();
     void reanudar();
 
+    // Permite a subclases desconectar tickJuego del timerFrame_ sin violar acceso
+    void desconectarTickJuego();
+
 signals:
     void golAnotado(int jugador);
     void tiempoAgotado();
     void nivelTerminado();
     void pausaToggled(bool pausado);
-    // emitido al acabar el tiempo con resultado: 0=j1 gana, 1=j2 gana, -1=empate
     void resultadoFinal(int ganador);
 
 protected slots:
