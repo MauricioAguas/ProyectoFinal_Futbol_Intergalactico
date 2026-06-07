@@ -20,7 +20,7 @@ public:
 
     void mover(float dx, float dy) override;
     void contacto(Balon *balon)    override;
-    void actualizar()              override;
+    void actualizar()              override;  // solo Nivel1 (gravedad)
     void reiniciar()               override;
 
     QRectF boundingRect() const override;
@@ -31,30 +31,42 @@ public:
     void percibir(float balonX, float balonY,
                   float jugadorX, float jugadorY);
 
-    // Llamar tras un gol para que la IA se posicione defensivamente
     void alertarGol();
 
+    // Nivel2: calcula dx,dy con maquina de estados + Arrive (sin gravedad)
+    void calcularMovHockey(float &outDx, float &outDy);
     void moverHockey(float dx, float dy, float limIzq, float limDer,
                      float limTop, float limBot);
 
+    // Nivel1: lerp por eje
     float calcularDx();
     float calcularDy();
+
+    // Modo hockey: desactiva zapato y gravedad en paint/actualizar
+    void setModoHockey(bool hockey) { modoHockey_ = hockey; }
 
     void setLimites(float xMin, float xMax) { xMin_ = xMin; xMax_ = xMax; }
     void setOtroJugador(Personaje *otro)    { otroJugador_ = otro; }
     void setSuelo(float suelo)              { suelo_ = suelo; }
 
 private:
+    bool modoHockey_ = false;
+
     float balonX_, balonY_, rivalX_, rivalY_;
     bool  balonVisible_;
-    static constexpr float RADIO_PERCEPCION = 800.0f;
+
+    enum EstadoHockey { PORTERO, ATACANTE };
+    EstadoHockey estadoHockey_;
+    static constexpr float DIST_ATAQUE   = 280.0f;
+    static constexpr float DIST_DEFENSA  = 350.0f;
+    static constexpr float OFFSET_PORTERO = 60.0f;
+    static constexpr float ARRIVE_SLOW_R  = 80.0f;
 
     float objetivoX_, objetivoY_;
     bool  debeAtacar_;
-    bool  defendiendo_;      // true = acaba de recibir gol, vuelve a su arco
-    int   framesDefensa_;    // cuenta regresiva de frames en modo defensa
-    static constexpr int FRAMES_DEFENSA = 120; // ~2s a 60fps
-
+    bool  defendiendo_;
+    int   framesDefensa_;
+    static constexpr int FRAMES_DEFENSA = 120;
     void  razonar();
 
     float xArco_;
@@ -65,13 +77,11 @@ private:
     float velActualY_;
     int   cooldownSalto_;
 
-    static constexpr float GRAVEDAD           = 0.5f;
-    // IMPULSO_SALTO: negativo = hacia arriba. -9 = ~20px menos altura que -12
-    static constexpr float IMPULSO_SALTO      = -9.0f;
-    // --- Ajusta estos valores para calibrar el salto de la IA ---
-    static constexpr float MIN_DIST_SALTO     = 80.0f;  // px verticales minimos
-    static constexpr float DIST_H_SALTO       = 120.0f; // px horizontales maximos
-    static constexpr int   FRAMES_COOLDOWN_SALTO = 90;  // ~1.5s entre saltos
+    static constexpr float GRAVEDAD              = 0.5f;
+    static constexpr float IMPULSO_SALTO         = -9.0f;
+    static constexpr float MIN_DIST_SALTO        = 80.0f;
+    static constexpr float DIST_H_SALTO          = 120.0f;
+    static constexpr int   FRAMES_COOLDOWN_SALTO = 90;
 
     static constexpr float ANCHO_SPRITE  = 48.0f;
     static constexpr float ALTO_SPRITE   = 64.0f;

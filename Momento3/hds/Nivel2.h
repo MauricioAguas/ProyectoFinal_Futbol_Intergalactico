@@ -21,6 +21,9 @@ protected:
     void keyPressEvent(QKeyEvent *event)   override;
     void keyReleaseEvent(QKeyEvent *event) override;
     void verificarGol() override;
+    // Sobreescribir tickJuego para que no ejecute la logica del Nivel base
+    // (gravedad, actualizar, etc.) ya que Nivel2 tiene su propio tickHockey
+    void tickJuego()  {}
 
 private slots:
     void actualizarHUD(int gol = -1);
