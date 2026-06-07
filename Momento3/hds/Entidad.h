@@ -21,11 +21,16 @@ public:
     explicit Entidad(QGraphicsItem *parent = nullptr);
     virtual ~Entidad();
 
+    // Retorna la posicion actual en X del item en la escena
     float getX() const { return x_; }
+    // Retorna la posicion actual en Y del item en la escena
     float getY() const { return y_; }
+    // Mueve la entidad a la coordenada (x, y) dentro de la escena
     void  setPosicion(float x, float y);
 
+    // Actualiza el estado de la entidad cada frame (logica de movimiento, fisica, etc.)
     virtual void actualizar() = 0;
+    // Reinicia la entidad a su estado inicial (posicion, velocidad, flags)
     virtual void reiniciar()  = 0;
 
     // Subclases deben definir su forma y dibujo
@@ -35,8 +40,8 @@ public:
                  QWidget *widget = nullptr) override = 0;
 
 protected:
-    float x_;
-    float y_;
+    float x_; // Posicion horizontal actual
+    float y_; // Posicion vertical actual
 };
 
 #endif // ENTIDAD_H
