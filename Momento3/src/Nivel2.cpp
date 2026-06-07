@@ -115,7 +115,6 @@ void Nivel2::inicializar() {
     temporizador_->setPos(anchoEscena_-60, 8);
     temporizador_->setZValue(10);
 
-    // Desconectar tickJuego de la base y conectar tickHockey
     desconectarTickJuego();
     connect(timerFrame_,   &QTimer::timeout, this, &Nivel2::tickHockey);
     connect(this, &Nivel::golAnotado, this, &Nivel2::actualizarHUD);
@@ -135,27 +134,30 @@ void Nivel2::actualizarHUD(int) {
 
 void Nivel2::verificarGol() {}
 
+// El sprite del jugador en Nivel2 tiene ~64px de alto con el origen en los pies (y_).
+// Centro del cuerpo ~32px arriba del origen => Y_CENTRO = -32.
+// Radio cubre desde cabeza hasta pies: R_CUERPO = 38 (mitad del alto + margen).
 bool Nivel2::cercaDelBalon(Personaje *jugador) {
     if (!balon_ || !jugador) return false;
-    const float R_SUM    = 35.0f;
-    const float Y_OFFSET = 10.0f;
+    const float R_CUERPO  = 38.0f;  // radio que cubre todo el cuerpo
+    const float Y_CENTRO  = -32.0f; // offset desde origen (pies) al centro del cuerpo
     float ex = balon_->getX() - jugador->getX();
-    float ey = balon_->getY() - (jugador->getY() + Y_OFFSET);
-    return (ex*ex + ey*ey) <= R_SUM * R_SUM;
+    float ey = balon_->getY() - (jugador->getY() + Y_CENTRO);
+    return (ex*ex + ey*ey) <= R_CUERPO * R_CUERPO;
 }
 
 void Nivel2::colisionHockey(Personaje *jugador, float dvx, float dvy, int jugadorId) {
     if (!balon_ || !jugador) return;
-    const float R_SUM    = 35.0f;
-    const float Y_OFFSET = 10.0f;
-    float jx=jugador->getX(), jy=jugador->getY()+Y_OFFSET;
+    const float R_CUERPO  = 38.0f;
+    const float Y_CENTRO  = -32.0f;
+    float jx=jugador->getX(), jy=jugador->getY() + Y_CENTRO;
     float bx=balon_->getX(), by=balon_->getY();
     float ex=bx-jx, ey=by-jy;
     float dist=qSqrt(ex*ex+ey*ey);
     if (dist<0.1f){ex=1.0f;ey=0.0f;dist=1.0f;}
     float nx=ex/dist, ny=ey/dist;
     if (ny>0.3f && dvy<=0.0f) return;
-    balon_->setPosicion(jx+nx*(R_SUM+1.0f), jy+ny*(R_SUM+1.0f));
+    balon_->setPosicion(jx+nx*(R_CUERPO+1.0f), jy+ny*(R_CUERPO+1.0f));
     float vbx=balon_->getVx(), vby=balon_->getVy();
     float vb_n=vbx*nx+vby*ny, vj_n=dvx*nx+dvy*ny;
     if (vb_n>0.0f && vj_n<=0.0f) return;
@@ -233,7 +235,6 @@ void Nivel2::tickHockey() {
     resolverBodyblock();
     if (!balon_) return;
 
-    // Mover el balon cada frame (aplica vx_/vy_ internamente)
     balon_->actualizar();
 
     bool tocaJ1=cercaDelBalon(jugador1_);
