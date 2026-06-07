@@ -4,6 +4,7 @@
 #include <QGraphicsScene>
 #include <QObject>
 #include <QTimer>
+#include <QKeyEvent>
 #include "Jugador.h"
 #include "JugadorIA.h"
 #include "Personaje.h"
@@ -24,14 +25,22 @@ public:
     int  getGoles(int jugador) const { return goles_[jugador]; }
     int  getTiempoRestante()   const { return tiempoRestante_; }
     bool estaActivo()          const { return activo_; }
+    bool estaPausado()         const { return pausado_; }
+    ModoJuego getModo()        const { return modo_; }
+
+    void pausa();
+    void reanudar();
 
 signals:
     void golAnotado(int jugador);
     void tiempoAgotado();
     void nivelTerminado();
+    void pausaToggled(bool pausado);
+    // emitido al acabar el tiempo con resultado: 0=j1 gana, 1=j2 gana, -1=empate
+    void resultadoFinal(int ganador);
 
 protected slots:
-    void tickJuego();
+    virtual void tickJuego();
     void tickTimer();
 
 protected:
@@ -45,12 +54,15 @@ protected:
     int       goles_[2];
     int       tiempoRestante_;
     bool      activo_;
+    bool      pausado_;
 
     QTimer *timerFrame_;
     QTimer *timerSegundo_;
 
-    virtual void verificarGol();   // virtual para que Nivel2 pueda sobreescribirla
+    virtual void verificarGol();
     void verificarContactos();
+
+    void keyPressEvent(QKeyEvent *event) override;
 
     int anchoEscena_;
     int altoEscena_;

@@ -42,6 +42,7 @@ void JugadorIA::paint(QPainter *painter,
     painter->setRenderHint(QPainter::SmoothPixmapTransform);
     painter->setRenderHint(QPainter::Antialiasing);
 
+    // Sprite del personaje — reflejado horizontalmente (igual que Jugador con reflejar_=true)
     if (!pixPersonaje_.isNull()) {
         painter->save();
         painter->scale(-1, 1);
@@ -58,13 +59,16 @@ void JugadorIA::paint(QPainter *painter,
         painter->drawEllipse(QRectF(-12,-44,24,24));
     }
 
-    // Zapato solo en Nivel1
+    // Zapato solo en Nivel1 — pivot identico a Jugador con reflejar_=true
     if (!modoHockey_ && !pixZapato_.isNull()) {
+        // reflejar_=true => pivotX = -ZAP_PIVOT_X
+        float pivotX = -ZAP_PIVOT_X;
         painter->save();
-        painter->translate(-ZAP_PIVOT_X, ZAP_PIVOT_Y);
-        painter->scale(-1,1);
+        painter->translate(pivotX, ZAP_PIVOT_Y);
+        painter->rotate(-0.0f);   // angulo siempre 0 para IA (sin patada)
+        painter->scale(-1, 1);    // reflejo igual que Jugador reflejado
         painter->drawPixmap(
-            QRectF(0,-ALTO_ZAPATO,ANCHO_ZAPATO,ALTO_ZAPATO),
+            QRectF(0, -ALTO_ZAPATO, ANCHO_ZAPATO, ALTO_ZAPATO),
             pixZapato_, QRectF(pixZapato_.rect()));
         painter->restore();
     }
@@ -142,16 +146,13 @@ static float arriveAxis(float actual, float target, float velMax, float slowR) {
     return (diff > 0) ? speed : -speed;
 }
 
-// Nivel2: maquina de estados + Arrive, SIN gravedad
 void JugadorIA::calcularMovHockey(float &outDx, float &outDy) {
     float velMax = velocidad_ * modificadorReaccion_;
     float tx, ty;
     if (estadoHockey_ == PORTERO) {
-        // X fija cerca del arco; Y sigue al balon para interceptar
         tx = xArco_ - OFFSET_PORTERO * ((xArco_ > 400) ? 1.0f : -1.0f);
         ty = balonVisible_ ? balonY_ : y_;
     } else {
-        // Atacante: perseguir balon
         tx = balonX_;
         ty = balonY_;
     }
@@ -159,7 +160,6 @@ void JugadorIA::calcularMovHockey(float &outDx, float &outDy) {
     outDy = arriveAxis(y_, ty, velMax, ARRIVE_SLOW_R);
 }
 
-// Nivel2: mueve con qBound; resetea vel acumulada si choca con borde
 void JugadorIA::moverHockey(float dx, float dy,
                              float limIzq, float limDer,
                              float limTop, float limBot) {
@@ -172,7 +172,6 @@ void JugadorIA::moverHockey(float dx, float dy,
     update();
 }
 
-// Nivel1: lerp por eje
 float JugadorIA::calcularDx() {
     float velMax = velocidad_ * modificadorReaccion_;
     float diff   = objetivoX_ - x_;
@@ -191,9 +190,8 @@ float JugadorIA::calcularDy() {
     return velActualY_;
 }
 
-// Nivel1 unicamente: fisica con gravedad y salto
 void JugadorIA::actualizar() {
-    if (!activo_ || modoHockey_) return;  // en hockey Nivel2 no hacer nada aqui
+    if (!activo_ || modoHockey_) return;
 
     if (defendiendo_) {
         if (framesDefensa_ > 0) framesDefensa_--;

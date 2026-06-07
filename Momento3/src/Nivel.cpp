@@ -12,6 +12,7 @@ Nivel::Nivel(ModoJuego modo, QObject *parent)
       modo_(modo),
       tiempoRestante_(90),
       activo_(false),
+      pausado_(false),
       anchoEscena_(800), altoEscena_(500)
 {
     goles_[0] = goles_[1] = 0;
@@ -23,6 +24,31 @@ Nivel::Nivel(ModoJuego modo, QObject *parent)
 }
 
 Nivel::~Nivel() {}
+
+void Nivel::pausa() {
+    if (!activo_ || pausado_) return;
+    pausado_ = true;
+    timerFrame_->stop();
+    timerSegundo_->stop();
+    emit pausaToggled(true);
+}
+
+void Nivel::reanudar() {
+    if (!pausado_) return;
+    pausado_ = false;
+    timerFrame_->start(16);
+    timerSegundo_->start(1000);
+    emit pausaToggled(false);
+}
+
+void Nivel::keyPressEvent(QKeyEvent *event) {
+    if (event->key() == Qt::Key_Escape) {
+        if (pausado_) reanudar();
+        else          pausa();
+        return;
+    }
+    QGraphicsScene::keyPressEvent(event);
+}
 
 void Nivel::tickJuego() {
     if (!activo_) return;
@@ -50,7 +76,14 @@ void Nivel::tickTimer() {
         activo_ = false;
         timerFrame_->stop();
         timerSegundo_->stop();
+
+        // Determinar ganador
+        int ganador = -1; // empate
+        if (goles_[0] > goles_[1])      ganador = 0;
+        else if (goles_[1] > goles_[0]) ganador = 1;
+
         emit tiempoAgotado();
+        emit resultadoFinal(ganador);
         emit nivelTerminado();
     }
 }
@@ -75,7 +108,6 @@ void Nivel::verificarGol() {
         gol = true;
     }
 
-    // Notificar a la IA para que se posicione defensivamente tras el gol
     if (gol && modo_ == VS_MAQUINA) {
         JugadorIA *ia = dynamic_cast<JugadorIA*>(jugador2_);
         if (ia) ia->alertarGol();
