@@ -3,7 +3,24 @@
 
 #include <QMainWindow>
 #include <QGraphicsView>
+#include <QKeyEvent>
+#include <QApplication>
 #include "Nivel.h"
+
+// Vista personalizada que bloquea el scroll con teclas de flechas
+class GameView : public QGraphicsView {
+    Q_OBJECT
+public:
+    explicit GameView(QWidget *parent = nullptr) : QGraphicsView(parent) {}
+protected:
+    void keyPressEvent(QKeyEvent *event) override {
+        // Reenviar la tecla a la escena sin activar el scroll de QGraphicsView
+        if (scene()) QApplication::sendEvent(scene(), event);
+    }
+    void keyReleaseEvent(QKeyEvent *event) override {
+        if (scene()) QApplication::sendEvent(scene(), event);
+    }
+};
 
 class Game : public QMainWindow {
     Q_OBJECT
@@ -29,7 +46,7 @@ private:
     void mostrarOverlayResultado(int ganador);
     void limpiarOverlay();
 
-    QGraphicsView *view_;
+    GameView      *view_;
     Nivel         *nivel_;
     QWidget       *overlay_;       // menu principal
     QWidget       *overlayIngame_; // pausa / resultado

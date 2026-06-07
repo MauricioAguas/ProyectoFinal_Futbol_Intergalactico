@@ -19,7 +19,6 @@ static const int GM_MENU_H  = 462;
 static const int GM_NIVEL_W = 800;
 static const int GM_NIVEL_H = 450;
 
-// Estilo comun para botones de menu ingame
 static QString btnIngameStyle() {
     return QString(
         "QPushButton {"
@@ -38,7 +37,7 @@ Game::Game(QWidget *parent)
 {
     setWindowTitle("Futbol Intergalactico - Futurama 3000");
 
-    view_ = new QGraphicsView(this);
+    view_ = new GameView(this);
     view_->setRenderHint(QPainter::Antialiasing);
     view_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     view_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -91,7 +90,7 @@ void Game::mostrarMenu() {
 
     QVBoxLayout *vlay = new QVBoxLayout(overlay_);
     vlay->setAlignment(Qt::AlignCenter);
-    vlay->addSpacing(230);
+    vlay->addSpacing(100);
 
     QPushButton *btn1v1  = new QPushButton("Nivel 1 - 1 vs 1  (teclado)",  overlay_);
     QPushButton *btn1vIA = new QPushButton("Nivel 1 - 1 vs Maquina (IA)",  overlay_);
@@ -145,9 +144,7 @@ void Game::onGol(int jugador) {
     Q_UNUSED(jugador);
 }
 
-void Game::onNivelTerminado() {
-    // resultadoFinal ya mostro el overlay; no redirigir automaticamente
-}
+void Game::onNivelTerminado() {}
 
 void Game::onPausaToggled(bool pausado) {
     if (pausado) {
@@ -218,7 +215,6 @@ void Game::mostrarOverlayResultado(int ganador) {
     vlay->setAlignment(Qt::AlignCenter);
     vlay->setSpacing(18);
 
-    // Construir mensaje segun modo y ganador
     QString linea1, linea2;
     bool vsIA = (nivel_ && nivel_->getModo() == Nivel::VS_MAQUINA);
 
@@ -226,7 +222,6 @@ void Game::mostrarOverlayResultado(int ganador) {
         linea1 = "EMPATE";
         linea2 = "";
     } else if (vsIA) {
-        // jugador1 = humano, jugador2 = IA
         if (ganador == 0) {
             linea1 = "VICTORIA";
             linea2 = "Ganaste contra la maquina";
@@ -235,8 +230,7 @@ void Game::mostrarOverlayResultado(int ganador) {
             linea2 = "La maquina te ha ganado";
         }
     } else {
-        // 1 vs 1
-        linea1 = (ganador == 0) ? "VICTORIA" : "VICTORIA";
+        linea1 = "VICTORIA";
         linea2 = QString("Gana el Jugador %1").arg(ganador + 1);
     }
 
@@ -259,7 +253,6 @@ void Game::mostrarOverlayResultado(int ganador) {
         vlay->addWidget(lblTitulo);
     }
 
-    // Marcador final
     if (nivel_) {
         QString marcador = QString("  %1  -  %2  ")
             .arg(nivel_->getGoles(0)).arg(nivel_->getGoles(1));
